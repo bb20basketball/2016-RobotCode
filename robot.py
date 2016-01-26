@@ -80,7 +80,9 @@ class MyRobot(wpilib.IterativeRobot):
             self.state = 0
 
         self.fire()
-
+        
+        #cam stuff
+        self.cam.set(self.controller.getRawAxis(3))
 
         #Lets drive!
         self.robot_drive.arcadeDrive(multi*self.controller.getY(),multi*self.controller.getX(),True)
