@@ -16,21 +16,31 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter=wpilib.Talon(2)
         self.cam=wpilib.Talon(3)
 
+        #Solenoid me
         self.arm1=wpilib.DoubleSolenoid(0,1,2)
         self.arm2=wpilib.DoubleSolenoid(0,3,4)
+
+        #Testing some ultrasonic sensors
         self.ultrasonic=wpilib.Ultrasonic(1,0, units.inch)
         self.ultrasonic.setAutomaticMode(True)
-        self.robot_drive = wpilib.RobotDrive(self.drive1,self.drive2)
+
+        #TWO CONTROLLERS
         self.controller = wpilib.Joystick(0)
         self.second_controller=wpilib.Joystick(1)
+
         #A button
         self.joystick_button=wpilib.buttons.JoystickButton(self.second_controller, 1)
         #B Button
         self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 2)
+
         #Right and left bumper
         self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,5)
         self.left_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
+        #Right bumper for boost on main controller
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
+
+
+        #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
         #self.ultrasonic = xl_max_sonar_ez.MaxSonarEZAnalog(3, units.inch)
@@ -52,8 +62,6 @@ class MyRobot(wpilib.IterativeRobot):
         #starting out the state at neutral motors
         self.state=4
 
-        self.counter = 0
-        #self.ultra.setAutomaticMode(True)
         #timer for the fire function
         self.timer = wpilib.Timer()
         self.timer.start()
@@ -77,10 +85,7 @@ class MyRobot(wpilib.IterativeRobot):
         if self.second_button.get(): #FIRE THE PISTON AND MOTOR#
             self.state = 0
         #Intaking while A is pressed on second controller
-        if self.joystick_button.get():
-            self.intake()
-        else:
-            self.detake()
+
 
 
 
@@ -93,6 +98,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Retract solenoid anyways
         elif self.left_bumper.get():
             self.shooter_piston=2
+
 
 
         #Set Everything that needs to be set
@@ -128,6 +134,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.controller.setRumble(1, .5)
             self.second_controller.setRumble(1,.5)
             self.shooter_piston=2
+            self.speedShooter=1
             
             if self.timer.hasPeriodPassed(3):
                 self.speedShooter=1
@@ -137,8 +144,11 @@ class MyRobot(wpilib.IterativeRobot):
             self.speedShooter=1
             if self.timer.hasPeriodPassed(1.5):
                 self.state=4
+        elif self.state==4 and self.joystick_button.get():
+            self.intake()
         elif self.state==4:
             self.speedShooter=0
+            self.shooter_piston=1
             self.controller.setRumble(1, 0)
             self.second_controller.setRumble(1, 0)
 
@@ -146,11 +156,6 @@ class MyRobot(wpilib.IterativeRobot):
         #This might be a problem if the pistons fire before the motors are ready
         self.speedShooter=.25
         self.shooter_piston=2
-
-    def detake(self):
-        #Retract while not pressed
-        self.shooter_piston=1
-        self.speedShooter=0
 
 
 
