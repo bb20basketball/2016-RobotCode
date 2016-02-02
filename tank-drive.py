@@ -77,10 +77,8 @@ class MyRobot(wpilib.IterativeRobot):
 
 
         #Booster
-        if self.main_fast.get():
-            multi=1
-        else:
-            multi=.65
+        cuber1 = self.controller.getRawAxis(1)**3
+        cuber2 = self.controller.getRawAxis(5)**3
         #Starts the fire stuff
         if self.second_button.get(): #FIRE THE PISTON AND MOTOR#
             self.state = 0
@@ -107,8 +105,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.cam.set(self.speedCam)
         #Lets drive!
-        self.drive1.set(((-1*multi)*self.controller.getRawAxis(1)))
-        self.drive2.set(((1*multi)*self.controller.getRawAxis(5)))
+        self.drive1.set((-1*cuber1))
+        self.drive2.set((1*cuber2))
 
     def getControllerStates(self):
         #Gets the values of triggers for the Cam
