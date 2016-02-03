@@ -33,9 +33,8 @@ class MyRobot(wpilib.IterativeRobot):
         #B Button
         self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 2)
 
-        #Right and left bumper
-        self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,5)
-        self.left_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
+        #Right bumper
+        self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
         #Right bumper for boost on main controller
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
@@ -50,6 +49,9 @@ class MyRobot(wpilib.IterativeRobot):
         self.speedShooter=0
         self.speedCam=0
         #Init variable for ultrasonic sensor
+
+        #Shooter speeds
+        self.shooter_high=.5
         self.updater()
 
     def autonomousInit(self):
@@ -71,9 +73,6 @@ class MyRobot(wpilib.IterativeRobot):
         #SMRT Dashboard updating
         self.updater()
 
-        #Cleans up all the .getRawAxis stuff
-        self.getControllerStates()
-
 
 
         #Booster
@@ -84,20 +83,16 @@ class MyRobot(wpilib.IterativeRobot):
             self.state = 0
         #Intaking while A is pressed on second controller
 
-
-
-
         self.fire()
 
-        #Push solenoid forward anyways
-        if self.right_bumper.get():
-            self.shooter_piston=1
 
         #Retract solenoid anyways
-        elif self.left_bumper.get():
+        if self.right_bumper.get():
             self.shooter_piston=2
 
 
+        #Gets rid of some of the .getRawAxis stuff
+        self.getControllerStates()
 
         #Set Everything that needs to be set
         self.arm1.set(self.shooter_piston)
@@ -113,6 +108,14 @@ class MyRobot(wpilib.IterativeRobot):
         self.left=-1*(self.controller.getRawAxis(2))
         self.right=self.controller.getRawAxis(3)
         self.speedCam=self.left+self.right
+
+        #Triggers for the second controller for manual speed control over the shooter
+        self.second_left=-1*(self.second_controller.getRawAxis(2))
+        self.second_right=-(self.second_controller.getRawAxis(3))
+
+        #IF you are using the controller, then it will do it
+        if self.second_right>.1 or self.second_left<-.1:
+            self.speedShooter=self.second_left+self.second_right
 
     def fire(self):
         """
@@ -132,14 +135,14 @@ class MyRobot(wpilib.IterativeRobot):
             self.controller.setRumble(1, .5)
             self.second_controller.setRumble(1,.5)
             self.shooter_piston=2
-            self.speedShooter=1
+            self.speedShooter=0
             
             if self.timer.hasPeriodPassed(3):
-                self.speedShooter=1
+                self.speedShooter=self.shooter_high
                 self.shooter_piston=1
                 self.state=3
         elif self.state == 3:
-            self.speedShooter=1
+            self.speedShooter=self.shooter_high
             if self.timer.hasPeriodPassed(1.5):
                 self.state=4
         elif self.state==4 and self.joystick_button.get():
