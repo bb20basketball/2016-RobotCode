@@ -111,7 +111,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Triggers for the second controller for manual speed control over the shooter
         self.second_left=-1*(self.second_controller.getRawAxis(2))
-        self.second_right=-(self.second_controller.getRawAxis(3))
+        self.second_right=(self.second_controller.getRawAxis(3))
 
         #IF you are using the controller, then it will do it
         if self.second_right>.1 or self.second_left<-.1:
@@ -125,28 +125,34 @@ class MyRobot(wpilib.IterativeRobot):
 
         """
         if self.state == 0:
-
             self.timer.reset()
-            self.state=2
+            self.state=1
             self.speedShooter=0
 
-
-        elif self.state == 2:
+        elif self.state == 1:
             self.controller.setRumble(1, .5)
             self.second_controller.setRumble(1,.5)
             self.shooter_piston=2
             self.speedShooter=0
             
-            if self.timer.hasPeriodPassed(3):
+            if self.timer.hasPeriodPassed(.75):
                 self.speedShooter=self.shooter_high
+                self.state=2
+
+        elif self.state==2:
+            self.shooter_piston=2
+            self.speedShooter=self.shooter_high
+            if self.timer.hasPeriodPassed(3):
                 self.shooter_piston=1
                 self.state=3
+
         elif self.state == 3:
             self.speedShooter=self.shooter_high
             if self.timer.hasPeriodPassed(1.5):
                 self.state=4
         elif self.state==4 and self.joystick_button.get():
             self.intake()
+
         elif self.state==4:
             self.speedShooter=0
             self.shooter_piston=1
