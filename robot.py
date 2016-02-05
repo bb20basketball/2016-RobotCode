@@ -1,9 +1,12 @@
+#!/usr/bin/env python3
 import wpilib
 import wpilib.buttons
+from robotpy_ext.common_drivers import units
 class MyRobot(wpilib.IterativeRobot):
 
 
     ##############SET UP FOR XBOX CONTROLLER###################
+    ##############Last Update: 1/26/16#########################
 
 
     def robotInit(self):
@@ -13,25 +16,46 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter=wpilib.Talon(2)
         self.cam=wpilib.Talon(3)
 
+        #Robot Driving Arcade
+        self.arcade_drive=wpilib.RobotDrive(self.drive1,self.drive2)
+
+        #Solenoid me
         self.arm1=wpilib.DoubleSolenoid(0,1,2)
-        self.arm2=wpilib.Solenoid(0,3,4)
+        self.arm2=wpilib.DoubleSolenoid(0,3,4)
 
-        self.robot_drive = wpilib.RobotDrive(self.drive1,self.drive2)
+        #Testing some ultrasonic sensors
+        self.ultrasonic=wpilib.Ultrasonic(1,0, units.inch)
+        self.ultrasonic.setAutomaticMode(True)
+
+        #TWO CONTROLLERS
         self.controller = wpilib.Joystick(0)
+        self.second_controller=wpilib.Joystick(1)
+
         #A button
-        self.joystick_button=wpilib.buttons.JoystickButton(self.controller, 1)
+        self.joystick_button=wpilib.buttons.JoystickButton(self.second_controller, 1)
         #B Button
-        self.second_button=wpilib.buttons.JoystickButton(self.controller, 2)
-        #Right and left bumper
-        self.right_bumper = wpilib.buttons.JoystickButton(self.controller,5)
-        self.left_bumper = wpilib.buttons.JoystickButton(self.controller,6)
+        self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 2)
 
+        #Right bumper
+        self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
+        #Right bumper for boost on main controller
+        self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
+
+
+        #Saving for later
         #Utrasonic Sensor
-        self.sensor = wpilib.AnalogInput(3)
+        #self.sensor = wpilib.AnalogInput(3)
+        #self.ultrasonic = xl_max_sonar_ez.MaxSonarEZAnalog(3, units.inch)
 
+        #Make all the variables needed
+        self.shooter_piston=1
+        self.speedShooter=0
+        self.speedCam=0
         #Init variable for ultrasonic sensor
-        wpilib.SmartDashboard.putNumber('Distance', self.sensor.getValue())
 
+        #Shooter speeds
+        self.shooter_high=.5
+        self.updater()
 
     def autonomousInit(self):
         pass
@@ -43,8 +67,6 @@ class MyRobot(wpilib.IterativeRobot):
         #starting out the state at neutral motors
         self.state=4
 
-        self.counter = 0
-
         #timer for the fire function
         self.timer = wpilib.Timer()
         self.timer.start()
@@ -54,39 +76,60 @@ class MyRobot(wpilib.IterativeRobot):
         #SMRT Dashboard updating
         self.updater()
 
-        #Getting the right stick of the xbox controller#
-        self.right_stickX=self.controller.getRawAxis(4)
-        #Getting the triggers#
-        self.right_trig=self.controller.getRawAxis(2)
-        self.left_trig=-1*self.controller.getRawAxis(3)
-
-        #Push solenoid forward anyways
-        if self.right_bumper.get():
-            self.arm1.set(1)
-            self.arm2.set(1)
-        #Retract solenoid anyways
-        elif self.left_bumper.get():
-            self.arm1.set(2)
-            self.arm2.set(2)
-
-        #Boost Button(Every likes it)
-        if self.joystick_button.get(): #If "a" is pressed, fire the piston on port 4#
-            multi=1
-        else:
-            multi=.5
 
 
+        #Booster
+        cuber1 = self.controller.getX()**1
+        cuber2 = self.controller.getY()**1
+        #Starts the fire stuff
         if self.second_button.get(): #FIRE THE PISTON AND MOTOR#
             self.state = 0
+        #Intaking while A is pressed on second controller
 
         self.fire()
-        
-        #cam stuff
-        self.cam.set(self.controller.getRawAxis(3))
 
+
+        #Retract solenoid anyways
+        if self.right_bumper.get():
+            self.shooter_piston=2
+
+
+        #Gets rid of some of the .getRawAxis stuff
+        self.getControllerStates()
+
+        #Set Everything that needs to be set
+        self.arm1.set(self.shooter_piston)
+        self.arm2.set(self.shooter_piston)
+        self.shooter.set(self.speedShooter)
+        self.cam.set(self.speedCam)
         #Lets drive!
-        self.robot_drive.arcadeDrive(multi*self.controller.getY(),multi*self.controller.getX(),True)
+        self.arcade_drive.arcadeDrive((self.boost*cuber1), (self.boost*cuber2), True)
 
+
+    def getControllerStates(self):
+        #Gets the values of triggers for the Cam
+        self.left=-1*(self.controller.getRawAxis(2))
+        self.right=self.controller.getRawAxis(3)
+        self.boost=((self.left+self.right)*.5)+.5
+        #programming for lack of accuracy on the triggers
+        if self.boost>1:
+            self.boost=1
+        elif self.boost<0:
+            self.boost=0
+
+        #Triggers for the second controller for manual speed control over the shooter
+        self.second_left=-1*(self.second_controller.getRawAxis(2))
+        self.second_right=(self.second_controller.getRawAxis(3))
+
+        #IF you are using the controller, then it will do it
+        if self.second_right>.1 or self.second_left<-.1:
+            self.speedShooter=self.second_left+self.second_right
+
+        self.right_stick = self.controller.getRawAxis(5)
+        if self.right_stick > -.1 and self.right_stick < .1:
+            self.speedCam=0
+        else:
+            self.speedCam=self.right_stick
 
     def fire(self):
         """
@@ -96,37 +139,56 @@ class MyRobot(wpilib.IterativeRobot):
 
         """
         if self.state == 0:
-
             self.timer.reset()
             self.state=1
+            self.speedShooter=0
 
         elif self.state == 1:
-            self.shooter.set(1)
-            print("Im here")
-            if self.timer.hasPeriodPassed(.5):
-                self.state = 2
+            self.controller.setRumble(1, .9)
+            self.second_controller.setRumble(1, .9)
+            self.shooter_piston=2
+            self.speedShooter=0
 
-        elif self.state == 2:
-            self.shooter.set(1)
-            self.arm1.set(1)
-            self.arm2.set(1)
-            if self.timer.hasPeriodPassed(1):
-                self.arm1.set(2)
-                self.arm2.set(2)
+            if self.timer.hasPeriodPassed(.75):
+                self.speedShooter=self.shooter_high
+                self.state=2
+
+        elif self.state==2:
+            self.shooter_piston=2
+            self.speedShooter=self.shooter_high
+            if self.timer.hasPeriodPassed(3):
+                self.shooter_piston=1
                 self.state=3
+
         elif self.state == 3:
-            self.shooter.set(1)
-            if self.timer.hasPeriodPassed(2):
+            self.speedShooter=self.shooter_high
+            if self.timer.hasPeriodPassed(1.5):
                 self.state=4
+
+        elif self.state==4 and self.joystick_button.get():
+            self.intake()
+
         elif self.state==4:
-            self.shooter.set(0)
+            self.speedShooter=0
+            self.shooter_piston=1
+            self.controller.setRumble(1, 0)
+            self.second_controller.setRumble(1, 0)
+
+    def intake(self):
+        #This might be a problem if the pistons fire before the motors are ready
+        self.speedShooter=.25
+        self.shooter_piston=2
+
 
 
     def updater(self):
-        wpilib.SmartDashboard.putNumber('Distance', self.sensor.getValue())
-
+        ##Put all smartdashboard things here
+        wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
 
     def disabledPeriodic(self):
-        self.shooter.set(0)
+        ##Updated values when disabled
+        self.updater()
+
+
 if __name__ == "__main__":
     wpilib.run(MyRobot)
