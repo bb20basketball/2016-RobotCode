@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import wpilib
 import wpilib.buttons
-from robotpy_ext.common_drivers import units
+from robotpy_ext.common_drivers import units, navx
 class MyRobot(wpilib.IterativeRobot):
 
 
@@ -11,11 +11,12 @@ class MyRobot(wpilib.IterativeRobot):
 
     def robotInit(self):
 
-        self.drive1=wpilib.Talon(0)
-        self.drive2=wpilib.Talon(1)
-        self.shooter=wpilib.Talon(2)
-        self.cam=wpilib.Talon(3)
-
+        self.drive1=wpilib.Talon(1)
+        self.drive2=wpilib.Talon(2)
+        self.shooter=wpilib.Talon(3)
+        self.cam=wpilib.Talon(4)
+        #navx
+        self.navx = navx.AHRS.create_spi()
         #Robot Driving Arcade
         self.arcade_drive=wpilib.RobotDrive(self.drive1,self.drive2)
 
@@ -52,24 +53,67 @@ class MyRobot(wpilib.IterativeRobot):
         self.speedShooter=0
         self.speedCam=0
         #Init variable for ultrasonic sensor
-
+        #Timer stuff
+        self.timer = wpilib.Timer()
+        self.timer.start()
+        
         #Shooter speeds
         self.shooter_high=.5
         self.updater()
 
     def autonomousInit(self):
-        pass
+        
+        self.auto_motor=0
+        self.auto_state=0
+        self.auto_drive1=0
+        self.auto_drive2=0
+        self.state=4
 
     def autonomousPeriodic(self):
-        pass
+        if self.auto_state == 0:
+            self.timer.reset()
+            self.auto_state=1
+            self.auto_drive1=0
+            self.auto_drive2=0
+        elif self.auto_state==1:
+            self.auto_drive1=.25
+            self.auto_drive2=.25
+            if self.timer.hasPeriodPassed(1):
+                self.auto_state=2
+        elif self.auto_state==2:
+            self.auto_drive1=0
+            self.auto_drive2=0
+            if self.turn(20):
+                self.auto_state=3
+        elif self.auto_state==3:
+            self.auto_drive1=.25
+            self.auto_drive2=.25
+            if self.timer.hasPeriodPassed(2):
+                self.auto_state=4
+        elif self.auto_state==4:
+            self.auto_drive1=0
+            self.auto_drive2=0
+            if self.turn(-160):
+                self.auto_state=5
+        elif self.auto_state==5:
+            self.auto_drive1=0
+            self.auto_drive2=0
+            self.state=0
+        self.fire()
+        self.updater()
+
+        #Set all the motors and pistons
+        self.shooter.set(self.speedShooter)
+        self.arm1.set(self.shooter_piston)
+        self.arm2.set(self.shooter_piston)
+        self.drive1.set((-1*self.auto_drive1))
+        self.drive2.set((1*self.auto_drive2))
 
     def teleopInit(self):
         #starting out the state at neutral motors
         self.state=4
 
-        #timer for the fire function
-        self.timer = wpilib.Timer()
-        self.timer.start()
+
 
 
     def teleopPeriodic(self):
@@ -79,7 +123,7 @@ class MyRobot(wpilib.IterativeRobot):
 
 
         #Booster
-        cuber1 = self.controller.getX()**1
+        cuber1 = self.controller.getX()*-1
         cuber2 = self.controller.getY()**1
         #Starts the fire stuff
         if self.second_button.get(): #FIRE THE PISTON AND MOTOR#
@@ -103,14 +147,14 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.cam.set(self.speedCam)
         #Lets drive!
-        self.arcade_drive.arcadeDrive((self.boost*cuber1), (self.boost*cuber2), True)
+        self.arcade_drive.arcadeDrive((self.boost*cuber2), (self.boost*cuber1), True)
 
 
     def getControllerStates(self):
         #Gets the values of triggers for the Cam
         self.left=-1*(self.controller.getRawAxis(2))
         self.right=self.controller.getRawAxis(3)
-        self.boost=((self.left+self.right)*.5)+.5
+        self.boost=(((self.left+self.right)*.5)-.1)+.6
         #programming for lack of accuracy on the triggers
         if self.boost>1:
             self.boost=1
@@ -125,7 +169,7 @@ class MyRobot(wpilib.IterativeRobot):
         if self.second_right>.1 or self.second_left<-.1:
             self.speedShooter=self.second_left+self.second_right
 
-        self.right_stick = self.controller.getRawAxis(5)
+        self.right_stick = -1*(self.controller.getRawAxis(5))
         if self.right_stick > -.1 and self.right_stick < .1:
             self.speedCam=0
         else:
@@ -157,6 +201,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.shooter_piston=2
             self.speedShooter=self.shooter_high
             if self.timer.hasPeriodPassed(3):
+                self.speedShooter=self.shooter_high
                 self.shooter_piston=1
                 self.state=3
 
@@ -170,7 +215,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         elif self.state==4:
             self.speedShooter=0
-            self.shooter_piston=1
+            self.shooter_piston=1 #I could change this and see if that helps stop the immediate retract
             self.controller.setRumble(1, 0)
             self.second_controller.setRumble(1, 0)
 
@@ -179,12 +224,18 @@ class MyRobot(wpilib.IterativeRobot):
         self.speedShooter=.25
         self.shooter_piston=2
 
-
+    def turn(self, degrees):
+        current=self.navx.getYaw()
+        if current < (degrees+5) and current > degrees:
+            self.auto_drive2=0
+            return True
+        else:
+            self.auto_drive2=.25
 
     def updater(self):
         ##Put all smartdashboard things here
-        wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
-
+        #wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
+        wpilib.SmartDashboard.putNumber('Yaw', self.navx.getYaw())
     def disabledPeriodic(self):
         ##Updated values when disabled
         self.updater()
