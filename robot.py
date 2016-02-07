@@ -68,6 +68,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.auto_drive1=0
         self.auto_drive2=0
         self.state=4
+        self.arcade_drive.setSafetyEnabled(False)
+
 
     def autonomousPeriodic(self):
         if self.auto_state == 0:
@@ -113,14 +115,11 @@ class MyRobot(wpilib.IterativeRobot):
         #starting out the state at neutral motors
         self.state=4
 
-
-
+        self.arcade_drive.setSafetyEnabled(True)
 
     def teleopPeriodic(self):
         #SMRT Dashboard updating
         self.updater()
-
-
 
         #Booster
         cuber1 = self.controller.getX()*-1
@@ -131,7 +130,6 @@ class MyRobot(wpilib.IterativeRobot):
         #Intaking while A is pressed on second controller
 
         self.fire()
-
 
         #Retract solenoid anyways
         if self.right_bumper.get():
@@ -148,7 +146,6 @@ class MyRobot(wpilib.IterativeRobot):
         self.cam.set(self.speedCam)
         #Lets drive!
         self.arcade_drive.arcadeDrive((self.boost*cuber2), (self.boost*cuber1), True)
-
 
     def getControllerStates(self):
         #Gets the values of triggers for the Cam
@@ -238,9 +235,11 @@ class MyRobot(wpilib.IterativeRobot):
 
     def updater(self):
         ##Put all smartdashboard things here
-        #wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
+        wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
         wpilib.SmartDashboard.putNumber('Yaw', self.navx.getYaw())
         wpilib.SmartDashboard.putNumber('Velocity', self.navx.getVelocityY())
+        wpilib.SmartDashboard.putNumber('Vision', 1)#Will use this one eventually
+
     def disabledPeriodic(self):
         ##Updated values when disabled
         self.updater()
