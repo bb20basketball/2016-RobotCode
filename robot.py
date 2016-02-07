@@ -223,6 +223,10 @@ class MyRobot(wpilib.IterativeRobot):
         #This might be a problem if the pistons fire before the motors are ready
         self.speedShooter=.25
         self.shooter_piston=2
+    def amIStuck(self):
+        if self.navx.getVelocityY()<1:
+            print("I am stuck")
+
 
     def turn(self, degrees):
         current=self.navx.getYaw()
@@ -236,6 +240,7 @@ class MyRobot(wpilib.IterativeRobot):
         ##Put all smartdashboard things here
         #wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
         wpilib.SmartDashboard.putNumber('Yaw', self.navx.getYaw())
+        wpilib.SmartDashboard.putNumber('Velocity', self.navx.getVelocityY())
     def disabledPeriodic(self):
         ##Updated values when disabled
         self.updater()
