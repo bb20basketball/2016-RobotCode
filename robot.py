@@ -39,6 +39,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Right bumper
         self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
+        self.left_bumper = wpilib.buttons.JoystickButton(self.second_controller,5)
         #Right bumper for boost on main controller
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
@@ -90,7 +91,7 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==3:
             self.auto_drive1=.25
             self.auto_drive2=.25
-            if self.timer.hasPeriodPassed(2):
+            if self.timer.hasPeriodPassed(3):
                 self.auto_state=4
         elif self.auto_state==4:
             self.auto_drive1=0
@@ -101,6 +102,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.auto_drive1=0
             self.auto_drive2=0
             self.state=0
+            self.auto_state=6
         self.fire()
         self.updater()
 
@@ -134,7 +136,8 @@ class MyRobot(wpilib.IterativeRobot):
         #Retract solenoid anyways
         if self.right_bumper.get():
             self.shooter_piston=2
-
+        elif self.left_bumper.get():
+            self.shooter_piston=1
 
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
@@ -212,7 +215,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         elif self.state==4:
             self.speedShooter=0
-            self.shooter_piston=1 #I could change this and see if that helps stop the immediate retract
+            #self.shooter_piston=1 I could change this and see if that helps stop the immediate retract
             self.controller.setRumble(1, 0)
             self.second_controller.setRumble(1, 0)
 
@@ -220,6 +223,7 @@ class MyRobot(wpilib.IterativeRobot):
         #This might be a problem if the pistons fire before the motors are ready
         self.speedShooter=.25
         self.shooter_piston=2
+
     def amIStuck(self):
         if self.navx.getVelocityY()<1:
             print("I am stuck")
@@ -232,6 +236,7 @@ class MyRobot(wpilib.IterativeRobot):
             return True
         else:
             self.auto_drive2=.25
+
 
     def updater(self):
         ##Put all smartdashboard things here
