@@ -73,31 +73,37 @@ class MyRobot(wpilib.IterativeRobot):
 
 
     def autonomousPeriodic(self):
+        #reset the timer for autonomous
         if self.auto_state == 0:
             self.timer.reset()
             self.auto_state=1
             self.auto_drive1=0
             self.auto_drive2=0
+        #drive forward for x amount of time
         elif self.auto_state==1:
             self.auto_drive1=.25
             self.auto_drive2=.25
             if self.timer.hasPeriodPassed(1):
                 self.auto_state=2
+        #turn 20 degrees to face target
         elif self.auto_state==2:
             self.auto_drive1=0
             self.auto_drive2=0
             if self.turn(20):
                 self.auto_state=3
+        #Drive forward again
         elif self.auto_state==3:
             self.auto_drive1=.25
             self.auto_drive2=.25
             if self.timer.hasPeriodPassed(3):
                 self.auto_state=4
+        #do a complete 180 to get ready to shoot
         elif self.auto_state==4:
             self.auto_drive1=0
             self.auto_drive2=0
             if self.turn(-160):
                 self.auto_state=5
+        #FIRE THE SEQUENCE
         elif self.auto_state==5:
             self.auto_drive1=0
             self.auto_drive2=0
