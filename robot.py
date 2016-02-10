@@ -34,6 +34,8 @@ class MyRobot(wpilib.IterativeRobot):
 
         #A button
         self.joystick_button=wpilib.buttons.JoystickButton(self.second_controller, 1)
+        #A button on Main
+        self.turn_button=wpilib.buttons.JoystickButton(self.controller, 1)
         #B Button
         self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 2)
 
@@ -59,9 +61,11 @@ class MyRobot(wpilib.IterativeRobot):
         self.timer.start()
         
         #Shooter speeds
-        self.shooter_high=.5
+        self.shooter_high=.45
         self.updater()
 
+        self.turn_state=2
+        self.desired=0
     def autonomousInit(self):
         
         self.auto_motor=0
@@ -147,6 +151,9 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
+        if self.turn_button.get():
+            self.turn_state=0
+            self.desired=self.navx.getYaw()-180
 
         #Set Everything that needs to be set
         self.arm1.set(self.shooter_piston)
@@ -155,7 +162,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.cam.set(self.speedCam)
         #Lets drive!
         self.arcade_drive.arcadeDrive((self.boost*cuber2), (self.boost*cuber1), True)
-
+        self.turn()
     def getControllerStates(self):
         #Gets the values of triggers for the Cam
         self.left=-1*(self.controller.getRawAxis(2))
@@ -234,14 +241,31 @@ class MyRobot(wpilib.IterativeRobot):
         if self.navx.getVelocityY()<1:
             print("I am stuck")
 
-
+    def teleopTurn(self):
+        """
+        Takes the current position and tries to do a 180 for the shooter
+        """
+        current=self.navx.getYaw()
+        if self.turn_state==0:
+            desired = self.desired
+            self.turn_state=1
+        elif self.turn_state==1:
+            if current < (desired+5) and current > desired:
+                self.turn_state=2
+            else:
+                self.drive2.set(.7)
+                self.drive1.set(0)
+                
     def turn(self, degrees):
+        """
+        For autonomous, to turn to set angle, requires reset on the navx to zero it out
+        """
         current=self.navx.getYaw()
         if current < (degrees+5) and current > degrees:
             self.auto_drive2=0
             return True
         else:
-            self.auto_drive2=.25
+            self.auto_drive2=.7
 
 
     def updater(self):
