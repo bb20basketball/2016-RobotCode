@@ -6,7 +6,7 @@ class MyRobot(wpilib.IterativeRobot):
 
 
     ##############SET UP FOR XBOX CONTROLLER###################
-    ##############Last Update: 1/26/16#########################
+    ###Has one driver and one dedicated shooter person########
 
 
     def robotInit(self):
@@ -151,9 +151,9 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
+        #Turns you around for shooting
         if self.turn_button.get():
             self.turn_state=0
-            self.desired=self.navx.getYaw()-180
 
         #Set Everything that needs to be set
         self.arm1.set(self.shooter_piston)
@@ -162,7 +162,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.cam.set(self.speedCam)
         #Lets drive!
         self.arcade_drive.arcadeDrive((self.boost*cuber2), (self.boost*cuber1), True)
-        self.turn()
+        self.teleopturn()
+
     def getControllerStates(self):
         #Gets the values of triggers for the Cam
         self.left=-1*(self.controller.getRawAxis(2))
@@ -183,7 +184,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.speedShooter=self.second_left+self.second_right
 
         self.right_stick = -1*(self.controller.getRawAxis(5))
-        if self.right_stick > -.1 and self.right_stick < .1:
+        if self.right_stick > -.2 and self.right_stick < .2:
             self.speedCam=0
         else:
             self.speedCam=self.right_stick
@@ -241,13 +242,14 @@ class MyRobot(wpilib.IterativeRobot):
         if self.navx.getVelocityY()<1:
             print("I am stuck")
 
-    def teleopTurn(self):
+    def teleopturn(self):
         """
         Takes the current position and tries to do a 180 for the shooter
+        I could expand on this with vision tracking if necessary
         """
         current=self.navx.getYaw()
         if self.turn_state==0:
-            desired = self.desired
+            desired = self.navx.getYaw()-180
             self.turn_state=1
         elif self.turn_state==1:
             if current < (desired+5) and current > desired:
@@ -255,7 +257,7 @@ class MyRobot(wpilib.IterativeRobot):
             else:
                 self.drive2.set(.7)
                 self.drive1.set(0)
-                
+
     def turn(self, degrees):
         """
         For autonomous, to turn to set angle, requires reset on the navx to zero it out
