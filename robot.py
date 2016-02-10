@@ -80,6 +80,7 @@ class MyRobot(wpilib.IterativeRobot):
         #reset the timer for autonomous
         if self.auto_state == 0:
             self.timer.reset()
+            self.navx.reset()
             self.auto_state=1
             self.auto_drive1=0
             self.auto_drive2=0
