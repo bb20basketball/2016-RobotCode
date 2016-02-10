@@ -45,7 +45,9 @@ class MyRobot(wpilib.IterativeRobot):
         #Right bumper for boost on main controller
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
-
+        #Pan and tilt controls for the camera
+        self.tilt=wpilib.Servo(8)
+        self.pan=wpilib.Servo(9)
         #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
@@ -80,7 +82,7 @@ class MyRobot(wpilib.IterativeRobot):
         #reset the timer for autonomous
         if self.auto_state == 0:
             self.timer.reset()
-            self.navx.reset()
+            self.navx.zeroYaw()
             self.auto_state=1
             self.auto_drive1=0
             self.auto_drive2=0
@@ -127,8 +129,9 @@ class MyRobot(wpilib.IterativeRobot):
     def teleopInit(self):
         #starting out the state at neutral motors
         self.state=4
-
         self.arcade_drive.setSafetyEnabled(True)
+        self.pan_total=.5
+        self.tilt_total=.5
 
     def teleopPeriodic(self):
         #SMRT Dashboard updating
@@ -152,6 +155,11 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
+
+        #Controls the camera pan and tilt
+        #self.cameraControl()
+        self.pan.set(1)
+
         #Turns you around for shooting
         if self.turn_button.get():
             self.turn_state=0
@@ -189,6 +197,26 @@ class MyRobot(wpilib.IterativeRobot):
             self.speedCam=0
         else:
             self.speedCam=self.right_stick
+
+        self.tilt_control=self.second_controller.getRawAxis(5)
+        self.pan_control=self.second_controller.getRawAxis(6)
+
+
+    def cameraControl(self):
+        total_tilt = (self.tilt_control*.2)+self.tilt_total
+        total_pan = (self.pan_control*.2)+self.pan_total
+
+        if total_tilt>1:
+            total_tilt=1
+        elif total_tilt<0:
+            total_tilt=0
+        if total_pan>1:
+            total_pan=1
+        elif total_pan<0:
+            total_pan=0
+
+        self.pan.set(total_pan)
+        self.tilt.set(total_tilt)
 
     def fire(self):
         """
@@ -236,7 +264,7 @@ class MyRobot(wpilib.IterativeRobot):
 
     def intake(self):
         #This might be a problem if the pistons fire before the motors are ready
-        self.speedShooter=.25
+        self.speedShooter=.15
         self.shooter_piston=2
 
     def amIStuck(self):
