@@ -45,9 +45,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Right bumper for boost on main controller
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
-        #Pan and tilt controls for the camera
-        self.tilt=wpilib.Servo(8)
-        self.pan=wpilib.Servo(9)
+
         #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
@@ -61,7 +59,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Timer stuff
         self.timer = wpilib.Timer()
         self.timer.start()
-        
+
         #Shooter speeds
         self.shooter_high=.45
         self.updater()
@@ -69,7 +67,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.turn_state=2
         self.desired=0
     def autonomousInit(self):
-        
+
         self.auto_motor=0
         self.auto_state=0
         self.auto_drive1=0
@@ -82,7 +80,7 @@ class MyRobot(wpilib.IterativeRobot):
         #reset the timer for autonomous
         if self.auto_state == 0:
             self.timer.reset()
-            self.navx.zeroYaw()
+            self.navx.reset()
             self.auto_state=1
             self.auto_drive1=0
             self.auto_drive2=0
@@ -129,9 +127,8 @@ class MyRobot(wpilib.IterativeRobot):
     def teleopInit(self):
         #starting out the state at neutral motors
         self.state=4
+
         self.arcade_drive.setSafetyEnabled(True)
-        self.pan_total=.5
-        self.tilt_total=.5
 
     def teleopPeriodic(self):
         #SMRT Dashboard updating
@@ -155,11 +152,6 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
-
-        #Controls the camera pan and tilt
-        #self.cameraControl()
-        self.pan.set(1)
-
         #Turns you around for shooting
         if self.turn_button.get():
             self.turn_state=0
@@ -198,32 +190,10 @@ class MyRobot(wpilib.IterativeRobot):
         else:
             self.speedCam=self.right_stick
 
-        self.tilt_control=self.second_controller.getRawAxis(5)
-        self.pan_control=self.second_controller.getRawAxis(6)
-
-
-    def cameraControl(self):
-        total_tilt = (self.tilt_control*.2)+self.tilt_total
-        total_pan = (self.pan_control*.2)+self.pan_total
-
-        if total_tilt>1:
-            total_tilt=1
-        elif total_tilt<0:
-            total_tilt=0
-        if total_pan>1:
-            total_pan=1
-        elif total_pan<0:
-            total_pan=0
-
-        self.pan.set(total_pan)
-        self.tilt.set(total_tilt)
-
     def fire(self):
         """
         This function is the automated shooter.
-
         This was programmed well before the final shooter was in place so errors are going to happen with this
-
         """
         if self.state == 0:
             self.timer.reset()
@@ -264,7 +234,7 @@ class MyRobot(wpilib.IterativeRobot):
 
     def intake(self):
         #This might be a problem if the pistons fire before the motors are ready
-        self.speedShooter=.15
+        self.speedShooter=.25
         self.shooter_piston=2
 
     def amIStuck(self):
@@ -278,10 +248,14 @@ class MyRobot(wpilib.IterativeRobot):
         """
         current=self.navx.getYaw()
         if self.turn_state==0:
-            desired = self.navx.getYaw()-180
+            yaw = self.navx.getYaw()
+            if yaw > 0:
+                self.desired = (-1*yaw)-60
+            else:
+                self.desired = yaw + 60
             self.turn_state=1
         elif self.turn_state==1:
-            if current < (desired+5) and current > desired:
+            if current < (self.desired+5) and current > self.desired:
                 self.turn_state=2
             else:
                 self.drive2.set(.7)
