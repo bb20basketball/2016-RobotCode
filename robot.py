@@ -6,7 +6,7 @@ class MyRobot(wpilib.IterativeRobot):
 
 
     ##############SET UP FOR XBOX CONTROLLER###################
-    ###Has one driver and one dedicated shooter person########
+    ##############Last Update: 1/26/16#########################
 
 
     def robotInit(self):
@@ -23,7 +23,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Solenoid me
         self.arm1=wpilib.DoubleSolenoid(0,1,2)
         self.arm2=wpilib.DoubleSolenoid(0,3,4)
-
+        self.servo=wpilib.Servo(0)
         #Testing some ultrasonic sensors
         self.ultrasonic=wpilib.Ultrasonic(1,0, units.inch)
         self.ultrasonic.setAutomaticMode(True)
@@ -37,7 +37,7 @@ class MyRobot(wpilib.IterativeRobot):
         #A button on Main
         self.turn_button=wpilib.buttons.JoystickButton(self.controller, 1)
         #B Button
-        self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 2)
+        self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
 
         #Right bumper
         self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
@@ -45,7 +45,8 @@ class MyRobot(wpilib.IterativeRobot):
         #Right bumper for boost on main controller
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
-
+        self.left_servo=wpilib.buttons.JoystickButton(self.second_controller,3)
+        self.right_servo=wpilib.buttons.JoystickButton(self.second_controller,2)
         #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
@@ -59,7 +60,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Timer stuff
         self.timer = wpilib.Timer()
         self.timer.start()
-
+        
         #Shooter speeds
         self.shooter_high=.45
         self.updater()
@@ -67,7 +68,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.turn_state=2
         self.desired=0
     def autonomousInit(self):
-
+        
         self.auto_motor=0
         self.auto_state=0
         self.auto_drive1=0
@@ -80,7 +81,6 @@ class MyRobot(wpilib.IterativeRobot):
         #reset the timer for autonomous
         if self.auto_state == 0:
             self.timer.reset()
-            self.navx.reset()
             self.auto_state=1
             self.auto_drive1=0
             self.auto_drive2=0
@@ -127,13 +127,13 @@ class MyRobot(wpilib.IterativeRobot):
     def teleopInit(self):
         #starting out the state at neutral motors
         self.state=4
-
+        self.total_pan=0
         self.arcade_drive.setSafetyEnabled(True)
 
     def teleopPeriodic(self):
         #SMRT Dashboard updating
         self.updater()
-
+        
         #Booster
         cuber1 = self.controller.getX()*-1
         cuber2 = self.controller.getY()**1
@@ -143,6 +143,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Intaking while A is pressed on second controller
 
         self.fire()
+        self.cameraControl()
 
         #Retract solenoid anyways
         if self.right_bumper.get():
@@ -152,9 +153,14 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
-        #Turns you around for shooting
         if self.turn_button.get():
             self.turn_state=0
+            yaw=self.navx.getYaw()
+            if yaw > 0:
+                
+                self.desired=self.navx.getYaw()-227
+            else:
+                self.desired=self.navx.getYaw()+133
 
         #Set Everything that needs to be set
         self.arm1.set(self.shooter_piston)
@@ -163,9 +169,10 @@ class MyRobot(wpilib.IterativeRobot):
         self.cam.set(self.speedCam)
         #Lets drive!
         self.arcade_drive.arcadeDrive((self.boost*cuber2), (self.boost*cuber1), True)
-        self.teleopturn()
-
+        self.teleopTurn()
+        
     def getControllerStates(self):
+        
         #Gets the values of triggers for the Cam
         self.left=-1*(self.controller.getRawAxis(2))
         self.right=self.controller.getRawAxis(3)
@@ -185,10 +192,25 @@ class MyRobot(wpilib.IterativeRobot):
             self.speedShooter=self.second_left+self.second_right
 
         self.right_stick = -1*(self.controller.getRawAxis(5))
-        if self.right_stick > -.2 and self.right_stick < .2:
+        if self.right_stick > -.1 and self.right_stick < .1:
             self.speedCam=0
         else:
             self.speedCam=self.right_stick
+            
+    def cameraControl(self):
+        
+        if self.right_servo.get():
+            self.total_pan=self.total_pan-.025
+        elif self.left_servo.get():
+            self.total_pan=self.total_pan+.025
+
+        if self.total_pan>1:
+            self.total_pan=1
+        elif self.total_pan<0:
+            self.total_pan=0
+
+        self.servo.set(self.total_pan)
+        
 
     def fire(self):
         """
@@ -220,7 +242,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         elif self.state == 3:
             self.speedShooter=self.shooter_high
-            if self.timer.hasPeriodPassed(1.5):
+            if self.timer.hasPeriodPassed(.75):
                 self.state=4
 
         elif self.state==4 and self.joystick_button.get():
@@ -234,33 +256,29 @@ class MyRobot(wpilib.IterativeRobot):
 
     def intake(self):
         #This might be a problem if the pistons fire before the motors are ready
-        self.speedShooter=.25
+        self.speedShooter=.2
         self.shooter_piston=2
 
     def amIStuck(self):
         if self.navx.getVelocityY()<1:
             print("I am stuck")
 
-    def teleopturn(self):
+    def teleopTurn(self):
         """
         Takes the current position and tries to do a 180 for the shooter
-        I could expand on this with vision tracking if necessary
         """
         current=self.navx.getYaw()
         if self.turn_state==0:
-            yaw = self.navx.getYaw()
-            if yaw > 0:
-                self.desired = (-1*yaw)-60
-            else:
-                self.desired = yaw + 60
+            #self.navx.zeroYaw()
+            desired = self.desired
             self.turn_state=1
         elif self.turn_state==1:
-            if current < (self.desired+5) and current > self.desired:
+            if current < (self.desired+10) and current > self.desired:
                 self.turn_state=2
             else:
                 self.drive2.set(.7)
-                self.drive1.set(0)
-
+                self.drive1.set(.5)
+                
     def turn(self, degrees):
         """
         For autonomous, to turn to set angle, requires reset on the navx to zero it out
