@@ -149,10 +149,7 @@ class MyRobot(wpilib.IterativeRobot):
     def teleopPeriodic(self):
         #SMRT Dashboard updating
         self.updater()
-        
-        #Used to be Booster
-        cuber1 = self.controller.getX()*-1
-        cuber2 = self.controller.getY()**1
+
         #Starts the fire stuff
         if self.second_button.get(): #FIRE THE PISTON AND MOTORS#
             self.state = 0
@@ -171,8 +168,7 @@ class MyRobot(wpilib.IterativeRobot):
         if self.turn_button.get():
             self.turn_state=0
             yaw=self.navx.getYaw()
-            if yaw > 0:
-                
+            if yaw > 0: 
                 self.desired=self.navx.getYaw()-227
             else:
                 self.desired=self.navx.getYaw()+133
@@ -183,7 +179,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.cam.set(self.speedCam)
         #Lets drive!
-        self.arcade_drive.arcadeDrive((self.boost*cuber2), (self.boost*cuber1), True)
+        self.arcade_drive.arcadeDrive((self.boost*self.controller.getY()), (self.boost*(-1*self.controller.getX())), True)
+        
         self.teleopTurn()
         
     def getControllerStates(self):
@@ -207,7 +204,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.speedShooter=self.second_left+self.second_right
 
         self.right_stick = -1*(self.controller.getRawAxis(5))
-        if self.right_stick > -.1 and self.right_stick < .1:
+        if self.right_stick > -.2 and self.right_stick < .2:
             self.speedCam=0
         else:
             self.speedCam=self.right_stick
@@ -226,11 +223,9 @@ class MyRobot(wpilib.IterativeRobot):
 
         self.servo.set(self.total_pan)
         
-
     def fire(self):
         """
-        This function is the automated shooter.
-        This was programmed well before the final shooter was in place so errors are going to happen with this
+        This function is the automated shooter. Fires piston out, spins motor to speed, fires back
         """
         if self.state == 0:
             self.timer.reset()
@@ -288,7 +283,7 @@ class MyRobot(wpilib.IterativeRobot):
             desired = self.desired
             self.turn_state=1
         elif self.turn_state==1:
-            if current < (self.desired+10) and current > self.desired:
+            if current < (self.desired+10) and current > self.desired or current==0:#Trying this to see if NavX freaks out, it will stop
                 self.turn_state=2
             else:
                 self.drive2.set(.7)
