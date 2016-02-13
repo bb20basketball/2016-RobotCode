@@ -36,6 +36,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.joystick_button=wpilib.buttons.JoystickButton(self.second_controller, 1)
         #A button on Main
         self.turn_button=wpilib.buttons.JoystickButton(self.controller, 1)
+        #X button for cancelling a rogue navx
+        self.cancel=wpilib.buttons.JoystickButton(self.controller, 3)
         #Y Button on Second Controller
         self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
 
@@ -170,6 +172,8 @@ class MyRobot(wpilib.IterativeRobot):
             yaw=self.navx.getYaw()
             if yaw > 0: 
                 self.desired=self.navx.getYaw()-227
+                if self.desired<-179:
+                    self.desired=self.desired+360
             else:
                 self.desired=self.navx.getYaw()+133
 
@@ -286,6 +290,8 @@ class MyRobot(wpilib.IterativeRobot):
             if current < (self.desired+10) and current > self.desired or current==0:#Trying this to see if NavX freaks out, it will stop
                 self.turn_state=2
             else:
+                if self.cancel.get()
+                    self.turn_state=2
                 self.drive2.set(.7)
                 self.drive1.set(.5)
 
