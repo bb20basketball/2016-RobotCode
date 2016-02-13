@@ -52,7 +52,10 @@ class MyRobot(wpilib.IterativeRobot):
         self.right_servo=wpilib.buttons.JoystickButton(self.second_controller,2)
 
 
-        self.hold_button=wpilib.buttons.JoystickButton(self.second_controller, 7)#Probably the wrong button
+        self.hold_button=wpilib.buttons.JoystickButton(self.second_controller, 9)
+
+        self.higher_speed=wpilib.buttons.JoystickButton(self.second_controller, 8)
+        self.lower_speed=wpilib.buttons.JoystickButton(self.second_controller, 7)
         #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
@@ -66,7 +69,8 @@ class MyRobot(wpilib.IterativeRobot):
         #Timer stuff
         self.timer = wpilib.Timer()
         self.timer.start()
-        
+
+        self.shooter_counter=0
         #Shooter speed
         self.shooter_high=.55
         self.updater()
@@ -142,6 +146,25 @@ class MyRobot(wpilib.IterativeRobot):
             self.auto_drive2=.7
 
 
+    def change_speed(self):
+        """
+        Changes speed of shooter with the buttons by the Xbox logo
+        I use the counter to debounce the button a little so it doesn't hop up too much at a time
+        """
+        if self.higher_speed.get() and self.shooter_counter==0:
+            self.shooter_high+=.01
+            self.shooter_counter=1
+        elif self.lower_speed.get() and self.shooter_counter==0:
+            self.shooter_high-=.01
+            self.shooter_counter=1
+        elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==1:
+            self.shooter_counter=0
+
+        if self.shooter_high>1:
+            self.shooter_high=1
+        elif self.shooter_high<.1:
+            self.shooter_high=.1
+
     def teleopInit(self):
         #starting out the state at neutral motors
         self.state=4
@@ -152,6 +175,7 @@ class MyRobot(wpilib.IterativeRobot):
 
     def teleopPeriodic(self):
         #SMRT Dashboard updating
+        self.change_speed()
         self.updater()
 
         #Starts the fire stuff
@@ -303,6 +327,7 @@ class MyRobot(wpilib.IterativeRobot):
         wpilib.SmartDashboard.putNumber('Yaw', self.navx.getYaw())
         wpilib.SmartDashboard.putNumber('Velocity', self.navx.getVelocityY())
         wpilib.SmartDashboard.putNumber('Vision', 1)#Will use this one eventually
+        wpilib.SmartDashboard.putNumber('Speed', self.shooter_high)
 
     def disabledPeriodic(self):
         ##Updated values when disabled
