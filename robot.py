@@ -51,6 +51,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.left_servo=wpilib.buttons.JoystickButton(self.second_controller,3)
         self.right_servo=wpilib.buttons.JoystickButton(self.second_controller,2)
 
+
+        self.hold_button=wpilib.buttons.JoystickButton(self.second_controller, 7)#Probably the wrong button
         #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
@@ -65,8 +67,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.timer = wpilib.Timer()
         self.timer.start()
         
-        #Shooter speeds
-        self.shooter_high=.45
+        #Shooter speed
+        self.shooter_high=.55
         self.updater()
         
     def autonomousInit(self):
@@ -249,7 +251,7 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.state==2:
             self.shooter_piston=2
             self.speedShooter=self.shooter_high
-            if self.timer.hasPeriodPassed(3):
+            if self.timer.hasPeriodPassed(3) and self.hold_button.get()==False:
                 self.speedShooter=self.shooter_high
                 self.shooter_piston=1
                 self.state=3
@@ -270,7 +272,7 @@ class MyRobot(wpilib.IterativeRobot):
 
     def intake(self):
         #This might be a problem if the pistons fire before the motors are ready
-        self.speedShooter=.2
+        self.speedShooter=.15
         self.shooter_piston=2
 
     def amIStuck(self):
@@ -290,7 +292,7 @@ class MyRobot(wpilib.IterativeRobot):
             if current < (self.desired+10) and current > self.desired or current==0:#Trying this to see if NavX freaks out, it will stop
                 self.turn_state=2
             else:
-                if self.cancel.get()
+                if self.cancel.get():
                     self.turn_state=2
                 self.drive2.set(.7)
                 self.drive1.set(.5)
