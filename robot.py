@@ -32,11 +32,11 @@ class MyRobot(wpilib.IterativeRobot):
         self.controller = wpilib.Joystick(0)
         self.second_controller=wpilib.Joystick(1)
 
-        #A button
+        #A button Second Controller
         self.joystick_button=wpilib.buttons.JoystickButton(self.second_controller, 1)
         #A button on Main
         self.turn_button=wpilib.buttons.JoystickButton(self.controller, 1)
-        #B Button
+        #Y Button on Second Controller
         self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
 
         #Right bumper
@@ -45,8 +45,10 @@ class MyRobot(wpilib.IterativeRobot):
         #Right bumper for boost on main controller
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
+        #For controlling the servos, A and B button
         self.left_servo=wpilib.buttons.JoystickButton(self.second_controller,3)
         self.right_servo=wpilib.buttons.JoystickButton(self.second_controller,2)
+
         #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
@@ -64,9 +66,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Shooter speeds
         self.shooter_high=.45
         self.updater()
-
-        self.turn_state=2
-        self.desired=0
+        
     def autonomousInit(self):
         
         self.auto_motor=0
@@ -106,7 +106,7 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==4:
             self.auto_drive1=0
             self.auto_drive2=0
-            if self.turn(-160):
+            if self.turn(-207):
                 self.auto_state=5
         #FIRE THE SEQUENCE
         elif self.auto_state==5:
@@ -114,6 +114,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.auto_drive2=0
             self.state=0
             self.auto_state=6
+            
         self.fire()
         self.updater()
 
@@ -124,23 +125,37 @@ class MyRobot(wpilib.IterativeRobot):
         self.drive1.set((-1*self.auto_drive1))
         self.drive2.set((1*self.auto_drive2))
 
+                
+    def turn(self, degrees):
+        """
+        For autonomous, to turn to set angle, requires reset on the navx to zero it out
+        """
+        current=self.navx.getYaw()
+        if current < (degrees+5) and current > degrees:
+            self.auto_drive2=0
+            return True
+        else:
+            self.auto_drive2=.7
+
+
     def teleopInit(self):
         #starting out the state at neutral motors
         self.state=4
         self.total_pan=0
+        self.turn_state=2
+        self.desired=0
         self.arcade_drive.setSafetyEnabled(True)
 
     def teleopPeriodic(self):
         #SMRT Dashboard updating
         self.updater()
         
-        #Booster
+        #Used to be Booster
         cuber1 = self.controller.getX()*-1
         cuber2 = self.controller.getY()**1
         #Starts the fire stuff
-        if self.second_button.get(): #FIRE THE PISTON AND MOTOR#
+        if self.second_button.get(): #FIRE THE PISTON AND MOTORS#
             self.state = 0
-        #Intaking while A is pressed on second controller
 
         self.fire()
         self.cameraControl()
@@ -278,18 +293,6 @@ class MyRobot(wpilib.IterativeRobot):
             else:
                 self.drive2.set(.7)
                 self.drive1.set(.5)
-                
-    def turn(self, degrees):
-        """
-        For autonomous, to turn to set angle, requires reset on the navx to zero it out
-        """
-        current=self.navx.getYaw()
-        if current < (degrees+5) and current > degrees:
-            self.auto_drive2=0
-            return True
-        else:
-            self.auto_drive2=.7
-
 
     def updater(self):
         ##Put all smartdashboard things here
