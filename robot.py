@@ -7,7 +7,7 @@ class MyRobot(wpilib.IterativeRobot):
 
 
     ##############SET UP FOR XBOX CONTROLLER###################
-    ##############Last Update: 1/26/16#########################
+    ##############For two talented drivers: one for driving, one for shooting#########################
 
 
     def robotInit(self):
@@ -24,6 +24,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Solenoid me
         self.arm1=wpilib.DoubleSolenoid(0,1,2)
         self.arm2=wpilib.DoubleSolenoid(0,3,4)
+        #Camera servo in the front to be able to navigate around
         self.servo=wpilib.Servo(0)
         #Testing some ultrasonic sensors
         self.ultrasonic=wpilib.Ultrasonic(1,0, units.inch)
@@ -38,9 +39,12 @@ class MyRobot(wpilib.IterativeRobot):
         #A button on Main
         self.turn_button=wpilib.buttons.JoystickButton(self.controller, 1)
         #X button for cancelling a rogue navx
-        self.cancel=wpilib.buttons.JoystickButton(self.controller, 3)
+        self.cancel=wpilib.buttons.JoystickButton(self.controller, 2)
         #Y Button on Second Controller
         self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
+
+        #You can press X to line up your shot if need be
+        self.auto_line_up=wpilib.buttons.JoystickButton(self.controller, 3)
 
         #Right bumper
         self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
@@ -51,12 +55,16 @@ class MyRobot(wpilib.IterativeRobot):
         #For controlling the servos, A and B button
         self.left_servo=wpilib.buttons.JoystickButton(self.second_controller,3)
         self.right_servo=wpilib.buttons.JoystickButton(self.second_controller,2)
+        #So you can always know where is front
+        self.forward_servo=wpilib.buttons.JoystickButton(self.second_controller,10)
 
-
+        #In case one of your slow drivers can't line up in time, you can hold off the sequence
         self.hold_button=wpilib.buttons.JoystickButton(self.second_controller, 9)
 
+        #Allows you to fine tine the shooter speed on the go if conditions change
         self.higher_speed=wpilib.buttons.JoystickButton(self.second_controller, 8)
         self.lower_speed=wpilib.buttons.JoystickButton(self.second_controller, 7)
+
         #Saving for later
         #Utrasonic Sensor
         #self.sensor = wpilib.AnalogInput(3)
@@ -260,7 +268,8 @@ class MyRobot(wpilib.IterativeRobot):
             self.total_pan=1
         elif self.total_pan<0:
             self.total_pan=0
-
+        if self.forward_servo.get():
+            self.total_pan=.5 #Or whatever the front is....subject to fine tuning
         self.servo.set(self.total_pan)
 
     def vision(self):
@@ -272,10 +281,12 @@ class MyRobot(wpilib.IterativeRobot):
         if len(self.vision_value)>0:
             self.vision_number=self.vision_value.sort()[0]
             if self.vision_state==0:
-                if self.vision_number > 180:
+                #For safety reasons, you can press B and it will stop the auto line up
+                if self.cancel.get():
+                    self.vision_state=1
+                elif self.vision_number > 180:
                     self.drive1.set(-.2)
                     self.drive2.set(.2)
-
                 elif self.vision_number< 140:
                     self.drive1.set(.2)
                     self.drive2.set(-.2)
@@ -330,7 +341,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter_piston=2
 
     def amIStuck(self):
-        if self.navx.getVelocityY()<1:
+        if self.navx.getVelocityY()<.1 and self.navx.getVelocityY() >-.1:
             print("I am stuck")
 
     def teleopTurn(self):
@@ -339,10 +350,11 @@ class MyRobot(wpilib.IterativeRobot):
         """
         current=self.navx.getYaw()
         if self.turn_state==0:
-            if current < (self.desired+10) and current > self.desired or current==0:#Trying this to see if NavX freaks out, it will stop
+            #Sees if the navx freaks out and spits out 0's >>>>>>>>>>>>>>>>>>>>>>>
+            if current < (self.desired+10) and current > self.desired or current==0:
                 self.turn_state=2
             else:
-                if self.cancel.get():
+                if self.cancel.get(): #Press B to cancel the turning
                     self.turn_state=2
                 self.drive2.set(.7)
                 self.drive1.set(.5)
