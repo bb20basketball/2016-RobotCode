@@ -2,6 +2,7 @@
 import wpilib
 import wpilib.buttons
 from robotpy_ext.common_drivers import units, navx
+import networktables
 class MyRobot(wpilib.IterativeRobot):
 
 
@@ -69,6 +70,9 @@ class MyRobot(wpilib.IterativeRobot):
         #Timer stuff
         self.timer = wpilib.Timer()
         self.timer.start()
+
+        self.vision_table = networktables.NetworkTable.getTable('GRIP/myContoursReport')
+        self.vision_value= networktables.StringArray()
 
         self.shooter_counter=0
         #Shooter speed
@@ -174,6 +178,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.arcade_drive.setSafetyEnabled(True)
 
     def teleopPeriodic(self):
+
         #SMRT Dashboard updating
         self.change_speed()
         self.updater()
@@ -196,7 +201,7 @@ class MyRobot(wpilib.IterativeRobot):
         if self.turn_button.get():
             self.turn_state=0
             yaw=self.navx.getYaw()
-            if yaw > 0: 
+            if yaw > 0:
                 self.desired=self.navx.getYaw()-227
                 if self.desired<-179:
                     self.desired=self.desired+360
@@ -209,9 +214,14 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.cam.set(self.speedCam)
         #Lets drive!
-        self.arcade_drive.arcadeDrive((self.boost*self.controller.getY()), (self.boost*(-1*self.controller.getX())), True)
-        
+        try:
+            self.arcade_drive.arcadeDrive((self.boost*self.controller.getY()), (self.boost*(-1*self.controller.getX())), True)
+        except:
+            if not self.isFMSAttached():
+                raise
+        #I call it last because it needs to override the arcadedrive
         self.teleopTurn()
+
         
     def getControllerStates(self):
         
@@ -252,6 +262,26 @@ class MyRobot(wpilib.IterativeRobot):
             self.total_pan=0
 
         self.servo.set(self.total_pan)
+
+    def vision(self):
+        """
+        Not currently called because, well, I don't have vision even set up....
+        """
+        #get data
+        self.vision_table.retrieveValue('centerX', self.vision_value)
+        if len(self.vision_value)>0:
+            self.vision_number=self.vision_value.sort()[0]
+            if self.vision_state==0:
+                if self.vision_number > 180:
+                    self.drive1.set(-.2)
+                    self.drive2.set(.2)
+
+                elif self.vision_number< 140:
+                    self.drive1.set(.2)
+                    self.drive2.set(-.2)
+                else:
+                    self.vision_state=1
+            wpilib.SmartDashboard.putNumber("Vision", self.vision_number)
         
     def fire(self):
         """
@@ -309,10 +339,6 @@ class MyRobot(wpilib.IterativeRobot):
         """
         current=self.navx.getYaw()
         if self.turn_state==0:
-            #self.navx.zeroYaw()
-            desired = self.desired
-            self.turn_state=1
-        elif self.turn_state==1:
             if current < (self.desired+10) and current > self.desired or current==0:#Trying this to see if NavX freaks out, it will stop
                 self.turn_state=2
             else:
@@ -326,7 +352,6 @@ class MyRobot(wpilib.IterativeRobot):
         wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
         wpilib.SmartDashboard.putNumber('Yaw', self.navx.getYaw())
         wpilib.SmartDashboard.putNumber('Velocity', self.navx.getVelocityY())
-        wpilib.SmartDashboard.putNumber('Vision', 1)#Will use this one eventually
         wpilib.SmartDashboard.putNumber('Speed', self.shooter_high)
 
     def disabledPeriodic(self):
