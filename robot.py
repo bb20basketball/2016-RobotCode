@@ -234,7 +234,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.cam.set(self.speedCam)
         #Lets drive!
         try:
-            self.arcade_drive.arcadeDrive((self.boost*self.controller.getY()), (self.boost*(-1*self.controller.getX())), True)
+            self.arcade_drive.arcadeDrive((self.boost*self.controller.getY()), (self.boost*(-1*self.controller.getX())))
         except:
             if not self.isFMSAttached():
                 raise
@@ -247,7 +247,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Gets the values of triggers for the Cam
         self.left=-1*(self.controller.getRawAxis(2))
         self.right=self.controller.getRawAxis(3)
-        self.boost=(((self.left+self.right)*.5)-.1)+.6
+        self.boost=(((self.left+self.right)*.4)-.1)+.7
         #programming for lack of accuracy on the triggers
         if self.boost>1:
             self.boost=1
