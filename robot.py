@@ -269,10 +269,11 @@ class MyRobot(wpilib.IterativeRobot):
             self.speedCam=self.right_stick
             
     def cameraControl(self):
-        
-        if self.second_controller.getPOV(1)>.9:
+        #Uses the right stick on the second controller to control the camera
+        self.rightStick_second=self.second_controller.getRawAxis(5)
+        if self.rightStick_second<-.9:
             self.total_pan=self.total_pan-.025
-        elif self.second_controller.getPOV(2)>.9:
+        elif self.rightStick_second>.9:
             self.total_pan=self.total_pan+.025
 
         if self.total_pan>1:
