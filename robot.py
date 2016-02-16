@@ -53,13 +53,13 @@ class MyRobot(wpilib.IterativeRobot):
         self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
         #For controlling the servos, A and B button
-        self.left_servo=wpilib.buttons.JoystickButton(self.second_controller,3)
-        self.right_servo=wpilib.buttons.JoystickButton(self.second_controller,2)
+        self.low_goal=wpilib.buttons.JoystickButton(self.second_controller,3)
+
         #So you can always know where is front
         self.forward_servo=wpilib.buttons.JoystickButton(self.second_controller,10)
 
         #In case one of your slow drivers can't line up in time, you can hold off the sequence
-        self.hold_button=wpilib.buttons.JoystickButton(self.second_controller, 9)
+        self.hold_button=wpilib.buttons.JoystickButton(self.second_controller, 2)
 
         #Allows you to fine tine the shooter speed on the go if conditions change
         self.higher_speed=wpilib.buttons.JoystickButton(self.second_controller, 8)
@@ -86,6 +86,8 @@ class MyRobot(wpilib.IterativeRobot):
         #Shooter speed
         self.shooter_high=.55
         self.updater()
+        self.multiplier=1
+        self.fire_counter=False
         
     def autonomousInit(self):
         
@@ -101,6 +103,7 @@ class MyRobot(wpilib.IterativeRobot):
         #reset the timer for autonomous
         if self.auto_state == 0:
             self.timer.reset()
+            self.navx.zeroYaw()
             self.auto_state=1
             self.auto_drive1=0
             self.auto_drive2=0
@@ -126,7 +129,7 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==4:
             self.auto_drive1=0
             self.auto_drive2=0
-            if self.turn(-207):
+            if self.turn(153):
                 self.auto_state=5
         #FIRE THE SEQUENCE
         elif self.auto_state==5:
@@ -151,11 +154,13 @@ class MyRobot(wpilib.IterativeRobot):
         For autonomous, to turn to set angle, requires reset on the navx to zero it out
         """
         current=self.navx.getYaw()
-        if current < (degrees+5) and current > degrees:
+        if current < (degrees+10) and current > degrees:
             self.auto_drive2=0
+            self.auto_drive1=0
             return True
         else:
             self.auto_drive2=.7
+            self.auto_drive1=-.5
 
 
     def change_speed(self):
@@ -170,6 +175,8 @@ class MyRobot(wpilib.IterativeRobot):
             self.shooter_high-=.01
             self.shooter_counter=1
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==1:
+            self.shooter_counter=2
+        elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==2:
             self.shooter_counter=0
 
         if self.shooter_high>1:
@@ -192,8 +199,12 @@ class MyRobot(wpilib.IterativeRobot):
         self.updater()
 
         #Starts the fire stuff
-        if self.second_button.get(): #FIRE THE PISTON AND MOTORS#
+        if self.second_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
             self.state = 0
+            self.multiplier=1
+        elif self.low_goal.get() and self.fire_counter==False:
+            self.state=0
+            self.multiplier=-.75
 
         self.fire()
         self.cameraControl()
@@ -259,9 +270,9 @@ class MyRobot(wpilib.IterativeRobot):
             
     def cameraControl(self):
         
-        if self.right_servo.get():
+        if self.second_controller.getPOV(1)>.9:
             self.total_pan=self.total_pan-.025
-        elif self.left_servo.get():
+        elif self.second_controller.getPOV(2)>.9:
             self.total_pan=self.total_pan+.025
 
         if self.total_pan>1:
@@ -293,7 +304,7 @@ class MyRobot(wpilib.IterativeRobot):
                 else:
                     self.vision_state=1
             wpilib.SmartDashboard.putNumber("Vision", self.vision_number)
-        
+
     def fire(self):
         """
         This function is the automated shooter. Fires piston out, spins motor to speed, fires back
@@ -304,25 +315,26 @@ class MyRobot(wpilib.IterativeRobot):
             self.speedShooter=0
 
         elif self.state == 1:
+            self.fire_counter=True
             self.controller.setRumble(1, .9)
             self.second_controller.setRumble(1, .9)
             self.shooter_piston=2
             self.speedShooter=0
 
             if self.timer.hasPeriodPassed(.75):
-                self.speedShooter=self.shooter_high
+                self.speedShooter=self.shooter_high*self.multiplier
                 self.state=2
 
         elif self.state==2:
             self.shooter_piston=2
-            self.speedShooter=self.shooter_high
+            self.speedShooter=self.shooter_high*self.multiplier
             if self.timer.hasPeriodPassed(3) and self.hold_button.get()==False:
-                self.speedShooter=self.shooter_high
+                self.speedShooter=self.shooter_high*self.multiplier
                 self.shooter_piston=1
                 self.state=3
 
         elif self.state == 3:
-            self.speedShooter=self.shooter_high
+            self.speedShooter=self.shooter_high*self.multiplier
             if self.timer.hasPeriodPassed(.75):
                 self.state=4
 
@@ -330,14 +342,16 @@ class MyRobot(wpilib.IterativeRobot):
             self.intake()
 
         elif self.state==4:
+            self.fire_counter=False
             self.speedShooter=0
             #self.shooter_piston=1 I could change this and see if that helps stop the immediate retract
             self.controller.setRumble(1, 0)
             self.second_controller.setRumble(1, 0)
 
+
     def intake(self):
         #This might be a problem if the pistons fire before the motors are ready
-        self.speedShooter=.15
+        self.speedShooter=.17
         self.shooter_piston=2
 
     def amIStuck(self):
@@ -358,6 +372,7 @@ class MyRobot(wpilib.IterativeRobot):
                     self.turn_state=2
                 self.drive2.set(.7)
                 self.drive1.set(.5)
+
 
     def updater(self):
         ##Put all smartdashboard things here
