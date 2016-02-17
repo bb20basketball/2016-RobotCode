@@ -168,12 +168,11 @@ class MyRobot(wpilib.IterativeRobot):
         Changes speed of shooter with the buttons by the Xbox logo
         I use the counter to debounce the button a little so it doesn't hop up too much at a time
         """
-        if self.higher_speed.get() and self.shooter_counter==0:
-            self.shooter_high+=.01
-            self.shooter_counter=1
-        elif self.lower_speed.get() and self.shooter_counter==0:
-            self.shooter_high-=.01
-            self.shooter_counter=1
+        if self.shooter_counter==0:
+           if self.lower_speed.get():
+               self.shooter_high-=.01
+           elif self.higher_speed.get():
+               self.shooter_high+=.01
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==1:
             self.shooter_counter=2
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==2:
