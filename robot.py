@@ -24,6 +24,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Solenoid me
         self.arm1=wpilib.DoubleSolenoid(0,1,2)
         self.arm2=wpilib.DoubleSolenoid(0,3,4)
+        self.bottoms_up=wpilib.Solenoid(0,5)
         #Camera servo in the front to be able to navigate around
         self.servo=wpilib.Servo(0)
         #Testing some ultrasonic sensors
@@ -42,6 +43,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.cancel=wpilib.buttons.JoystickButton(self.controller, 2)
         #Y Button on Second Controller
         self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
+        #Left Bumper for firing the back piston
+        self.fire_buttoms_up=wpilib.buttons.JoystickButton(self.controller, 5)
 
         #You can press X to line up your shot if need be
         self.auto_line_up=wpilib.buttons.JoystickButton(self.controller, 3)
@@ -206,6 +209,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.multiplier=-.75
 
         self.fire()
+        self.push_me_up()
         self.cameraControl()
 
         #Retract solenoid anyways
@@ -269,11 +273,12 @@ class MyRobot(wpilib.IterativeRobot):
             
     def cameraControl(self):
         #Uses the right stick on the second controller to control the camera
-        self.rightStick_second=self.second_controller.getRawAxis(5)
-        if self.rightStick_second<-.9:
-            self.total_pan=self.total_pan-.025
-        elif self.rightStick_second>.9:
+
+        if self.second_controller.getPOV(0) in [45, 90, 135]:
             self.total_pan=self.total_pan+.025
+        elif self.second_controller.getPOV(0) in [230, 270, 305]:
+            self.total_pan=self.total_pan-.025
+        print(self.total_pan)
 
         if self.total_pan>1:
             self.total_pan=1
@@ -348,6 +353,11 @@ class MyRobot(wpilib.IterativeRobot):
             self.controller.setRumble(1, 0)
             self.second_controller.setRumble(1, 0)
 
+    def push_me_up(self):
+        if self.fire_buttoms_up.get():
+            self.bottoms_up.set(True)
+        else:
+            self.bottoms_up.set(False)
 
     def intake(self):
         #This might be a problem if the pistons fire before the motors are ready
