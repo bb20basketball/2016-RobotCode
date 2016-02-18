@@ -85,6 +85,13 @@ class MyRobot(wpilib.IterativeRobot):
         self.vision_table = networktables.NetworkTable.getTable('GRIP/myContoursReport')
         self.vision_value= networktables.StringArray()
 
+
+        self.auto_chooser=wpilib.SendableChooser()
+        self.auto_chooser.addDefault("High Goal, Low Bar", "1")
+        self.auto_chooser.addObject("Rough Terrain", "2")
+
+        wpilib.SmartDashboard.putData('Choice', self.auto_chooser)
+
         self.shooter_counter=0
         #Shooter speed
         self.shooter_high=.55
@@ -101,8 +108,16 @@ class MyRobot(wpilib.IterativeRobot):
         self.state=4
         self.arcade_drive.setSafetyEnabled(False)
 
+        self.final_choice=self.auto_chooser.getSelected()
+        print(self.final_choice)
+
 
     def autonomousPeriodic(self):
+        if self.final_choice=="1":
+            self.high_goal()
+        elif self.final_choice=="2":
+            pass
+    def high_goal(self):
         #reset the timer for autonomous
         if self.auto_state == 0:
             self.timer.reset()
