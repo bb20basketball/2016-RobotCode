@@ -68,11 +68,6 @@ class MyRobot(wpilib.IterativeRobot):
         self.higher_speed=wpilib.buttons.JoystickButton(self.second_controller, 8)
         self.lower_speed=wpilib.buttons.JoystickButton(self.second_controller, 7)
 
-        #Saving for later
-        #Utrasonic Sensor
-        #self.sensor = wpilib.AnalogInput(3)
-        #self.ultrasonic = xl_max_sonar_ez.MaxSonarEZAnalog(3, units.inch)
-
         #Make all the variables needed
         self.shooter_piston=1
         self.speedShooter=0
@@ -85,7 +80,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.vision_table = networktables.NetworkTable.getTable('GRIP/myContoursReport')
         self.vision_value= networktables.StringArray()
 
-
+        #Gets sends the options to the SmartDashboard
         self.auto_chooser=wpilib.SendableChooser()
         self.auto_chooser.addDefault("High Goal, Low Bar", "1")
         self.auto_chooser.addObject("Crosser", "2")
@@ -110,8 +105,6 @@ class MyRobot(wpilib.IterativeRobot):
 
         self.final_choice=self.auto_chooser.getSelected()
 
-
-
     def autonomousPeriodic(self):
 
         if self.final_choice=="1":
@@ -120,6 +113,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.crosser()
         elif self.final_choice=="3":
             self.reacher()
+
     def high_goal(self):
         #reset the timer for autonomous
         if self.auto_state == 0:
@@ -362,11 +356,13 @@ class MyRobot(wpilib.IterativeRobot):
                 if self.cancel.get():
                     self.vision_state=1
                 elif self.vision_number > 180:
-                    self.drive1.set(-.2)
-                    self.drive2.set(.2)
+                    #self.drive1.set(-.2)
+                    #self.drive2.set(.2)
+                    pass
                 elif self.vision_number< 140:
-                    self.drive1.set(.2)
-                    self.drive2.set(-.2)
+                    #self.drive1.set(.2)
+                    #self.drive2.set(-.2)
+                    pass
                 else:
                     self.vision_state=1
             wpilib.SmartDashboard.putNumber("Vision", self.vision_number)
@@ -379,7 +375,6 @@ class MyRobot(wpilib.IterativeRobot):
             self.timer.reset()
             self.state=1
             self.speedShooter=0
-
 
         elif self.state == 1:
             self.fire_counter=True
