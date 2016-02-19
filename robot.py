@@ -88,8 +88,8 @@ class MyRobot(wpilib.IterativeRobot):
 
         self.auto_chooser=wpilib.SendableChooser()
         self.auto_chooser.addDefault("High Goal, Low Bar", "1")
-        self.auto_chooser.addObject("Rough Terrain", "2")
-
+        self.auto_chooser.addObject("Crosser", "2")
+        self.auto_chooser.addObject("Reacher", "3")
         wpilib.SmartDashboard.putData('Choice', self.auto_chooser)
 
         self.shooter_counter=0
@@ -109,14 +109,17 @@ class MyRobot(wpilib.IterativeRobot):
         self.arcade_drive.setSafetyEnabled(False)
 
         self.final_choice=self.auto_chooser.getSelected()
-        print(self.final_choice)
+
 
 
     def autonomousPeriodic(self):
+
         if self.final_choice=="1":
             self.high_goal()
         elif self.final_choice=="2":
-            pass
+            self.crosser()
+        elif self.final_choice=="3":
+            self.reacher()
     def high_goal(self):
         #reset the timer for autonomous
         if self.auto_state == 0:
@@ -135,8 +138,8 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==2:
             self.auto_drive1=0
             self.auto_drive2=0
-            if self.turn(-170):
-                self.auto_state=3
+            #if self.turn(-170):
+            self.auto_state=3
         #Drive forward again
         elif self.auto_state==3:
             self.auto_drive1=-.52
@@ -147,17 +150,9 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==4:
             self.auto_drive1=0
             self.auto_drive2=0
+            self.auto_state=5
             self.state=0
-            
-            """if self.turn(153):
-                self.auto_state=5
-        #FIRE THE SEQUENCE
-        elif self.auto_state==5:
-            self.auto_drive1=0
-            self.auto_drive2=0
-            self.state=0
-            self.auto_state=6"""
-            
+
         self.fire()
         self.updater()
 
@@ -168,6 +163,55 @@ class MyRobot(wpilib.IterativeRobot):
         self.drive1.set((-1*self.auto_drive1))
         self.drive2.set((1*self.auto_drive2))
 
+    def crosser(self):
+        if self.auto_state == 0:
+            self.timer.reset()
+            self.navx.zeroYaw()
+            self.auto_state=1
+            self.auto_drive1=0
+            self.auto_drive2=0
+        elif self.auto_state==1:
+            self.auto_drive2=.5
+            self.auto_drive1=.5
+            if self.timer.hasPeriodPassed(2.5):
+                self.auto_state=2
+        elif self.auto_state==2:
+            self.auto_drive2=1
+            self.auto_drive1=1
+            if self.timer.hasPeriodPassed(2.5) and self.amIStuck():
+                self.auto_state=3
+        elif self.auto_state==3:
+            self.auto_drive2=0
+            self.auto_drive1=0
+
+        self.shooter.set(self.speedShooter)
+        self.arm1.set(self.shooter_piston)
+        self.arm2.set(self.shooter_piston)
+        self.drive1.set((-1*self.auto_drive1))
+        self.drive2.set((1*self.auto_drive2))
+
+    def reacher(self):
+
+        if self.auto_state == 0:
+            self.timer.reset()
+            self.navx.zeroYaw()
+            self.auto_state=1
+            self.auto_drive1=0
+            self.auto_drive2=0
+        elif self.auto_state==1:
+            self.auto_drive2=.5
+            self.auto_drive1=.5
+            if self.timer.hasPeriodPassed(2.5):
+                self.auto_state=2
+        elif self.auto_state==2:
+            self.auto_drive2=0
+            self.auto_drive1=0
+
+        self.shooter.set(self.speedShooter)
+        self.arm1.set(self.shooter_piston)
+        self.arm2.set(self.shooter_piston)
+        self.drive1.set((-1*self.auto_drive1))
+        self.drive2.set((1*self.auto_drive2))
                 
     def turn(self, degrees):
         """
@@ -336,6 +380,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.state=1
             self.speedShooter=0
 
+
         elif self.state == 1:
             self.fire_counter=True
             self.controller.setRumble(1, .9)
@@ -382,8 +427,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter_piston=2
 
     def amIStuck(self):
-        if self.navx.getVelocityY()<.1 and self.navx.getVelocityY() >-.1:
-            print("I am stuck")
+        if self.navx.getVelocityY()<.2 and self.navx.getVelocityY() >-.2:
+            return True
 
     def teleopTurn(self):
         """
