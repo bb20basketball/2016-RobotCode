@@ -94,7 +94,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         self.shooter_counter=0
         #Shooter speed
-        self.shooter_high=.55
+        self.shooter_high=.47
         self.updater()
         self.multiplier=1
         self.fire_counter=False
@@ -127,34 +127,36 @@ class MyRobot(wpilib.IterativeRobot):
             self.auto_drive2=0
         #drive forward for x amount of time
         elif self.auto_state==1:
-            self.auto_drive1=.25
-            self.auto_drive2=.25
-            if self.timer.hasPeriodPassed(1):
+            self.auto_drive1=.455
+            self.auto_drive2=.5
+            if self.timer.hasPeriodPassed(4.9):
                 self.auto_state=2
         #turn 20 degrees to face target
         elif self.auto_state==2:
             self.auto_drive1=0
             self.auto_drive2=0
-            if self.turn(20):
+            if self.turn(-170):
                 self.auto_state=3
         #Drive forward again
         elif self.auto_state==3:
-            self.auto_drive1=.25
-            self.auto_drive2=.25
-            if self.timer.hasPeriodPassed(3):
+            self.auto_drive1=-.52
+            self.auto_drive2=-.5
+            if self.timer.hasPeriodPassed(5.4):
                 self.auto_state=4
         #do a complete 180 to get ready to shoot
         elif self.auto_state==4:
             self.auto_drive1=0
             self.auto_drive2=0
-            if self.turn(153):
+            self.state=0
+            
+            """if self.turn(153):
                 self.auto_state=5
         #FIRE THE SEQUENCE
         elif self.auto_state==5:
             self.auto_drive1=0
             self.auto_drive2=0
             self.state=0
-            self.auto_state=6
+            self.auto_state=6"""
             
         self.fire()
         self.updater()
@@ -172,7 +174,7 @@ class MyRobot(wpilib.IterativeRobot):
         For autonomous, to turn to set angle, requires reset on the navx to zero it out
         """
         current=self.navx.getYaw()
-        if current < (degrees+10) and current > degrees:
+        if current > (degrees-10) and current < degrees:
             self.auto_drive2=0
             self.auto_drive1=0
             return True
@@ -188,9 +190,9 @@ class MyRobot(wpilib.IterativeRobot):
         """
         if self.shooter_counter==0:
            if self.lower_speed.get():
-               self.shooter_high-=.01
+               self.shooter_high-=.005
            elif self.higher_speed.get():
-               self.shooter_high+=.01
+               self.shooter_high+=.005
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==1:
             self.shooter_counter=2
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==2:
