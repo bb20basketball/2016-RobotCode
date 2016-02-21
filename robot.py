@@ -72,6 +72,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter_piston=1
         self.speedShooter=0
         self.speedCam=0
+        self.piston_update="I DON'T KNOW"
         #Init variable for ultrasonic sensor
         #Timer stuff
         self.timer = wpilib.Timer()
@@ -82,9 +83,10 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Gets sends the options to the SmartDashboard
         self.auto_chooser=wpilib.SendableChooser()
-        self.auto_chooser.addDefault("High Goal, Low Bar", "1")
-        self.auto_chooser.addObject("Crosser", "2")
+        self.auto_chooser.addObject("High Goal, Low Bar", "1")
+        self.auto_chooser.addDefault("Crosser Low Bar", "2")
         self.auto_chooser.addObject("Reacher", "3")
+        self.auto_chooser.addObject("Crosser RW / RT", "4")
         wpilib.SmartDashboard.putData('Choice', self.auto_chooser)
 
         self.shooter_counter=0
@@ -102,7 +104,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.auto_drive2=0
         self.state=4
         self.arcade_drive.setSafetyEnabled(False)
-
+        #Gets the choice
         self.final_choice=self.auto_chooser.getSelected()
 
     def autonomousPeriodic(self):
@@ -110,12 +112,14 @@ class MyRobot(wpilib.IterativeRobot):
         if self.final_choice=="1":
             self.high_goal()
         elif self.final_choice=="2":
-            self.crosser()
+            self.low_bar_crosser()
         elif self.final_choice=="3":
             self.reacher()
+        elif self.final_choice=="4":
+            self.any_crosser()
 
     def high_goal(self):
-        #reset the timer for autonomous
+        #Needs some vision!
         if self.auto_state == 0:
             self.timer.reset()
             self.navx.zeroYaw()
@@ -157,7 +161,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.drive1.set((-1*self.auto_drive1))
         self.drive2.set((1*self.auto_drive2))
 
-    def crosser(self):
+    def low_bar_crosser(self):
         if self.auto_state == 0:
             self.timer.reset()
             self.navx.zeroYaw()
@@ -167,12 +171,35 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==1:
             self.auto_drive2=.5
             self.auto_drive1=.5
-            if self.timer.hasPeriodPassed(2.5):
+            if self.timer.hasPeriodPassed(4):
                 self.auto_state=2
+        elif self.auto_state==2:
+            self.auto_drive2=0
+            self.auto_drive1=0
+
+        self.shooter.set(self.speedShooter)
+        self.arm1.set(self.shooter_piston)
+        self.arm2.set(self.shooter_piston)
+        self.drive1.set((-1*self.auto_drive1))
+        self.drive2.set((1*self.auto_drive2))
+
+    def any_crosser(self):
+        if self.auto_state == 0:
+            self.timer.reset()
+            self.navx.zeroYaw()
+            self.auto_state=1
+            self.auto_drive1=0
+            self.auto_drive2=0
+        elif self.auto_state==1:
+            self.auto_drive2=.5
+            self.auto_drive1=.5
+            if self.timer.hasPeriodPassed(2):
+                self.auto_state=2
+
         elif self.auto_state==2:
             self.auto_drive2=1
             self.auto_drive1=1
-            if self.timer.hasPeriodPassed(2.5) and self.amIStuck():
+            if self.timer.hasPeriodPassed(1.5): #For now
                 self.auto_state=3
         elif self.auto_state==3:
             self.auto_drive2=0
@@ -195,7 +222,7 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==1:
             self.auto_drive2=.5
             self.auto_drive1=.5
-            if self.timer.hasPeriodPassed(2.5):
+            if self.timer.hasPeriodPassed(2):
                 self.auto_state=2
         elif self.auto_state==2:
             self.auto_drive2=0
@@ -432,7 +459,7 @@ class MyRobot(wpilib.IterativeRobot):
         current=self.navx.getYaw()
         if self.turn_state==0:
             #Sees if the navx freaks out and spits out 0's >>>>>>>>>>>>>>>>>>>>>>>
-            if current < (self.desired+10) and current > self.desired or current==0:
+            if current < (self.desired+5) and current > (self.desired-5) or current==0:
                 self.turn_state=2
             else:
                 if self.cancel.get(): #Press B to cancel the turning
@@ -443,7 +470,13 @@ class MyRobot(wpilib.IterativeRobot):
 
     def updater(self):
         ##Put all smartdashboard things here
-        wpilib.SmartDashboard.putNumber('Distance', self.ultrasonic.getRangeInches())
+        if self.shooter_piston==1:
+            self.piston_update="PISTON IN"
+        else:
+            self.piston_update="PISTON OUT"
+        wpilib.SmartDashboard.putString('Piston', self.piston_update)
+        wpilib.SmartDashboard.putNumber('Roll', self.navx.getRoll())#Just seeing if this data is useful to us
+        wpilib.SmartDashboard.putNumber('Pitch', self.navx.getPitch())
         wpilib.SmartDashboard.putNumber('Yaw', self.navx.getYaw())
         wpilib.SmartDashboard.putNumber('Velocity', self.navx.getVelocityY())
         wpilib.SmartDashboard.putNumber('Speed', self.shooter_high)
