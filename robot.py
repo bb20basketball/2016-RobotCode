@@ -78,8 +78,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.timer = wpilib.Timer()
         self.timer.start()
 
-        self.vision_table = networktables.NetworkTable.getTable('GRIP/myContoursReport')
-        self.vision_value= networktables.StringArray()
+        self.vision_table = networktables.NetworkTable.getTable('/GRIP/myContoursReport')
+        self.vision_value= networktables.NumberArray()
 
         #Gets sends the options to the SmartDashboard
         self.auto_chooser=wpilib.SendableChooser()
@@ -311,7 +311,7 @@ class MyRobot(wpilib.IterativeRobot):
                     self.desired=self.desired+360
             else:
                 self.desired=self.navx.getYaw()+133
-
+        self.vision()
         #Set Everything that needs to be set
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
@@ -360,7 +360,6 @@ class MyRobot(wpilib.IterativeRobot):
             self.total_pan=self.total_pan+.025
         elif self.second_controller.getPOV(0) in [230, 270, 305]:
             self.total_pan=self.total_pan-.025
-        print(self.total_pan)
 
         if self.total_pan>1:
             self.total_pan=1
@@ -375,24 +374,28 @@ class MyRobot(wpilib.IterativeRobot):
         Not currently called because, well, I don't have vision even set up....
         """
         #get data
-        self.vision_table.retrieveValue('centerX', self.vision_value)
-        if len(self.vision_value)>0:
-            self.vision_number=self.vision_value.sort()[0]
-            if self.vision_state==0:
-                #For safety reasons, you can press B and it will stop the auto line up
-                if self.cancel.get():
-                    self.vision_state=1
-                elif self.vision_number > 180:
-                    #self.drive1.set(-.2)
-                    #self.drive2.set(.2)
-                    pass
-                elif self.vision_number< 140:
-                    #self.drive1.set(.2)
-                    #self.drive2.set(-.2)
-                    pass
-                else:
-                    self.vision_state=1
-            wpilib.SmartDashboard.putNumber("Vision", self.vision_number)
+        try:
+            self.vision_table.retrieveValue('centerX', self.vision_value)
+        except KeyError:
+            pass
+        else:
+            if len(self.vision_value)>0:
+                self.vision_number=self.vision_value.sort()[0]
+                if self.vision_state==0:
+                    #For safety reasons, you can press B and it will stop the auto line up
+                    if self.cancel.get():
+                        self.vision_state=1
+                    elif self.vision_number > 180:
+                        #self.drive1.set(-.2)
+                        #self.drive2.set(.2)
+                        pass
+                    elif self.vision_number< 140:
+                        #self.drive1.set(.2)
+                        #self.drive2.set(-.2)
+                        pass
+                    else:
+                        self.vision_state=1
+                wpilib.SmartDashboard.putNumber("Vision", self.vision_number)
 
     def fire(self):
         """
