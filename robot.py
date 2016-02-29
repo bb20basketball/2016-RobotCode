@@ -59,6 +59,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.low_goal=wpilib.buttons.JoystickButton(self.second_controller,3)
 
         #So you can always know where is front
+        self.ball_servo=wpilib.buttons.JoystickButton(self.second_controller, 9)
         self.forward_servo=wpilib.buttons.JoystickButton(self.second_controller,10)
 
         #In case one of your slow drivers can't line up in time, you can hold off the sequence
@@ -86,7 +87,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.auto_chooser.addObject("High Goal, Low Bar", "1")
         self.auto_chooser.addDefault("Crosser Low Bar", "2")
         self.auto_chooser.addObject("Reacher", "3")
-        self.auto_chooser.addObject("Crosser RW / RT", "4")
+        self.auto_chooser.addObject("Crosser RT", "4")
         wpilib.SmartDashboard.putData('Choice', self.auto_chooser)
 
         self.shooter_counter=0
@@ -368,6 +369,8 @@ class MyRobot(wpilib.IterativeRobot):
             self.total_pan=0
         if self.forward_servo.get():
             self.total_pan=.5 #Or whatever the front is....subject to fine tuning
+        elif self.ball_servo.get():
+            self.total_pan=0
         self.servo.set(self.total_pan)
 
     def vision(self):
