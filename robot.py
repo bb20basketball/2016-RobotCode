@@ -95,6 +95,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.updater()
         self.multiplier=1
         self.fire_counter=False
+        self.ready=False
         
     def autonomousInit(self):
         
@@ -404,6 +405,7 @@ class MyRobot(wpilib.IterativeRobot):
         if self.state == 0:
             self.timer.reset()
             self.state=1
+            self.ready=False
             self.speedShooter=0
 
         elif self.state == 1:
@@ -420,10 +422,13 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.state==2:
             self.shooter_piston=2
             self.speedShooter=self.shooter_high*self.multiplier
-            if self.timer.hasPeriodPassed(3) and self.hold_button.get()==False:
-                self.speedShooter=self.shooter_high*self.multiplier
-                self.shooter_piston=1
-                self.state=3
+            if self.timer.hasPeriodPassed(3) or self.hold_button.get() or self.ready==True:
+                if not self.hold_button.get():
+                    self.speedShooter=self.shooter_high*self.multiplier
+                    self.shooter_piston=1
+                    self.state=3
+                self.ready=True
+
 
         elif self.state == 3:
             self.speedShooter=self.shooter_high*self.multiplier
