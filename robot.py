@@ -391,7 +391,17 @@ class MyRobot(wpilib.IterativeRobot):
             pass
         else:
             if len(self.vision_x)>0 and self.auto_alineX.get():
-                self.vision_numberX=self.vision_x[0]
+                if len(self.vision_x)==1:
+                    self.vision_numberX=self.vision_x[0]
+                else:
+                    good=self.vision_x[0]
+                    normal=abs(self.vision_x[0]-160)
+                    for i in self.vision_x[1:]:
+                        total=abs(i-160)
+                        if total <= normal:
+                            normal=total
+                            good=i
+                    self.vision_numberX=good
                 if self.vision_numberX > 180:
                     self.auto_calc=(((self.vision_numberX-180)/140)*.25)+.25
                     self.drive1.set(-1*self.auto_calc)
