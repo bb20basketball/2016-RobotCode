@@ -47,7 +47,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.fire_buttoms_up=wpilib.buttons.JoystickButton(self.controller, 5)
 
         #You can press X to line up your shot if need be
-        self.auto_line_up=wpilib.buttons.JoystickButton(self.controller, 3)
+        self.auto_alineX=wpilib.buttons.JoystickButton(self.controller, 3)
+        self.auto_alineY=wpilib.buttons.JoystickButton(self.controller, 4)
 
         #Right bumper
         self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
@@ -80,7 +81,10 @@ class MyRobot(wpilib.IterativeRobot):
         self.timer.start()
 
         self.vision_table = networktables.NetworkTable.getTable('/GRIP/myContoursReport')
-        self.vision_value= networktables.NumberArray()
+        self.vision_x= networktables.NumberArray()
+        self.vision_y=networktables.NumberArray()
+        self.vision_numberX=0
+        self.vision_numberY=0
 
         #Gets sends the options to the SmartDashboard
         self.auto_chooser=wpilib.SendableChooser()
@@ -375,32 +379,41 @@ class MyRobot(wpilib.IterativeRobot):
 
     def vision(self):
         """
-        Not currently called because, well, I don't have vision even set up....
+        IT WORKS....mostly
+        Press X to align the side to side
+        Press Y to get the distance needed
         """
         #get data
         try:
-            self.vision_table.retrieveValue('centerX', self.vision_value)
+            self.vision_table.retrieveValue('centerX', self.vision_x)
+            self.vision_table.retrieveValue('centerY', self.vision_y)
         except KeyError:
             pass
         else:
-            if len(self.vision_value)>0:
-                self.vision_number=self.vision_value.sort()[0]
-                if self.vision_state==0:
-                    #For safety reasons, you can press B and it will stop the auto line up
-                    if self.cancel.get():
-                        self.vision_state=1
-                    elif self.vision_number > 180:
-                        #self.drive1.set(-.2)
-                        #self.drive2.set(.2)
-                        pass
-                    elif self.vision_number< 140:
-                        #self.drive1.set(.2)
-                        #self.drive2.set(-.2)
-                        pass
-                    else:
-                        self.vision_state=1
-                wpilib.SmartDashboard.putNumber("Vision", self.vision_number)
+            if len(self.vision_x)>0 and self.auto_alineX.get():
+                self.vision_numberX=self.vision_x[0]
+                if self.vision_numberX > 180:
+                    self.auto_calc=(((self.vision_numberX-180)/140)*.25)+.25
+                    self.drive1.set(-1*self.auto_calc)
+                    self.drive1.set(self.auto_calc)
 
+                elif self.vision_numberX < 140:
+                    self.auto_calc=(((140-self.vision_numberX)/140)*.25)+.25
+                    self.drive1.set(self.auto_calc)
+                    self.drive2.set(-1*self.auto_calc)
+
+            elif len(self.vision_x)>0 and self.auto_alineY.get():
+                self.vision_numberY=self.vision_y[0]
+
+                if self.vision_numberY > 130:
+                    self.auto_calc=(((self.vision_numberY-110)/110)*.25)+.25
+                    self.drive1.set(-1*self.auto_calc)
+                    self.drive1.set(self.auto_calc)
+
+                elif self.vision_numberY < 110:
+                    self.auto_calc=(((110-self.vision_numberY)/110)*.25)+.25
+                    self.drive1.set(self.auto_calc)
+                    self.drive2.set(-1*self.auto_calc)
     def fire(self):
         """
         This function is the automated shooter. Fires piston out, spins motor to speed, fires back
