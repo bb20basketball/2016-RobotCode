@@ -101,6 +101,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.multiplier=1
         self.fire_counter=False
         self.ready=False
+        self.ready_aline=False
         
     def autonomousInit(self):
         
@@ -405,25 +406,29 @@ class MyRobot(wpilib.IterativeRobot):
                 if self.vision_numberX > 180:
                     self.auto_calc=(((self.vision_numberX-180)/140)*.25)+.25
                     self.drive1.set(-1*self.auto_calc)
-                    self.drive1.set(self.auto_calc)
+                    self.drive2.set(self.auto_calc)
 
-                elif self.vision_numberX < 140:
-                    self.auto_calc=(((140-self.vision_numberX)/140)*.25)+.25
+                elif self.vision_numberX < 150:
+                    self.auto_calc=(((150-self.vision_numberX)/150)*.25)+.25
                     self.drive1.set(self.auto_calc)
                     self.drive2.set(-1*self.auto_calc)
+                else:
+                    self.ready_aline=True
 
-            elif len(self.vision_x)>0 and self.auto_alineY.get():
+            elif len(self.vision_x)>0 and self.auto_alineX.get() and self.ready_aline:
                 self.vision_numberY=self.vision_y[0]
 
-                if self.vision_numberY > 130:
-                    self.auto_calc=(((self.vision_numberY-110)/110)*.25)+.25
+                if self.vision_numberY > 230:
+                    self.auto_calc=(((self.vision_numberY-230)/90)*.25)+.25
                     self.drive1.set(-1*self.auto_calc)
                     self.drive1.set(self.auto_calc)
 
-                elif self.vision_numberY < 110:
-                    self.auto_calc=(((110-self.vision_numberY)/110)*.25)+.25
+                elif self.vision_numberY < 200:
+                    self.auto_calc=(((200-self.vision_numberY)/200)*.25)+.25
                     self.drive1.set(self.auto_calc)
                     self.drive2.set(-1*self.auto_calc)
+                else:
+                    self.ready_aline=False
     def fire(self):
         """
         This function is the automated shooter. Fires piston out, spins motor to speed, fires back
