@@ -11,37 +11,35 @@ NetworkTable.initialize()"""
 
 table = NetworkTable.getTable('/GRIP/myContoursReport')
 default = networktables.NumberArray()
+total=0
+yings= networktables.NumberArray()
 while True:
     try:
         table.retrieveValue('centerX', default)
+        table.retrieveValue('centerY', yings)
     except KeyError:
         pass
     else:
-        
-        if len(default)>0:
-            if len(default)==1:
+            total=0
+            if len(default)>0:
                 vision_number=default[0]
-            else:
-                good=default[0]
-                normal=abs(default[0]-160)
-                for i in default[1:]:
-                    total=abs(i-160)
-                    if total <= normal:
-                        normal=total
-                        good=i
-                vision_number=good
-                    
+                ying=yings[0]
+                        
 
-            #For safety reasons, you can press B and it will stop the auto line up
-            if vision_number > 180:
-                #self.drive1.set(-.2)
-                #self.drive2.set(.2)
-                print "to da right"
-            elif vision_number< 140:
-                #self.drive1.set(.2)
-                #self.drive2.set(-.2)
-                print"to da left"
-            else:
-                print "you good"
-            print vision_number
+                #For safety reasons, you can press B and it will stop the auto line up
+                if vision_number > 180:
+                    total = ((vision_number/180)-1)*.6 #to be safe
+                elif vision_number< 140:
+                    total = (1-((vision_number/140)))*.6
+                else:
+                    print "goodX"
+                if ying > 50:
+                    total +=.4 #to be safe
+                elif ying< 20:
+                    total -=.4
+                else:
+                    print "goodY"
+
+
+                print total
     time.sleep(1)
