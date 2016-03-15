@@ -144,8 +144,6 @@ class MyRobot(wpilib.IterativeRobot):
                 self.auto_state=2
         #turn 20 degrees to face target
         elif self.auto_state==2:
-            self.auto_drive1=0
-            self.auto_drive2=0
             if self.turn(-170):
                 self.auto_state=3
         #Drive forward again
@@ -254,12 +252,12 @@ class MyRobot(wpilib.IterativeRobot):
         """
         current=self.navx.getYaw()
         if current > (degrees-10) and current < degrees:
-            self.auto_drive2=0
-            self.auto_drive1=0
+            self.drive2.set(0)
+            self.drive1.set(0)
             return True
         else:
-            self.auto_drive2=.7
-            self.auto_drive1=-.5
+            self.drive2.set(.7)
+            self.drive1.set(-.5)
 
 
     def change_speed(self):
