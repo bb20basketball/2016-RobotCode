@@ -97,6 +97,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter_counter=0
         #Shooter speed
         self.shooter_high=.47
+        self.auto_aline_autoY=False
         self.updater()
         self.multiplier=1
         self.fire_counter=False
@@ -118,7 +119,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.final_choice=self.auto_chooser.getSelected()
 
     def autonomousPeriodic(self):
-
+        
         if self.final_choice=="1":
             self.high_goal()
         elif self.final_choice=="2":
@@ -144,8 +145,8 @@ class MyRobot(wpilib.IterativeRobot):
                 self.auto_state=2
         #turn 20 degrees to face target
         elif self.auto_state==2:
-            if self.turn(-170):
-                self.auto_state=3
+            #if self.turn(-170):
+            self.auto_state=3
         #Drive forward again
         elif self.auto_state==3:
             self.drive1.set(.52)
@@ -154,13 +155,18 @@ class MyRobot(wpilib.IterativeRobot):
                 self.auto_state=4
         #do a complete 180 to get ready to shoot
         elif self.auto_state==4:
-            self.auto_aline_auto=True
+            self.auto_aline_autoY=True
             if self.ready_aline:
                 self.auto_state=5
+                self.ready_aline=False
         elif self.auto_state==5:
+            self.auto_aline_auto=True
+            if self.ready_aline:
+                self.auto_state=6
+        elif self.auto_state==6:
             self.drive1.set(0)
             self.drive2.set(0)
-            self.auto_state=6
+            self.auto_state=7
             self.state=0
 
         self.fire()
@@ -391,9 +397,8 @@ class MyRobot(wpilib.IterativeRobot):
         """
         #get data
         try:
-            #self.vision_table.retrieveValue('centerX', self.vision_x)
-            #self.vision_table.retrieveValue('centerY', self.vision_y)
-            self.vision_x=[160, 170]
+            self.vision_table.retrieveValue('centerX', self.vision_x)
+            self.vision_table.retrieveValue('centerY', self.vision_y)
         except KeyError:
             pass
         else:
@@ -410,31 +415,31 @@ class MyRobot(wpilib.IterativeRobot):
                             good=i
                     self.vision_numberX=good
                 if self.vision_numberX > 180:
-                    self.auto_calc=(((self.vision_numberX-180)/140)*.25)+.25
+                    self.auto_calc=(((self.vision_numberX-180)/140)*.15)+.25
                     self.drive1.set(-1*self.auto_calc)
                     self.drive2.set(self.auto_calc)
 
                 elif self.vision_numberX < 150:
-                    self.auto_calc=(((150-self.vision_numberX)/150)*.25)+.25
+                    self.auto_calc=(((150-self.vision_numberX)/150)*.15)+.25
                     self.drive1.set(self.auto_calc)
                     self.drive2.set(-1*self.auto_calc)
                 else:
                     self.ready_aline=True
 
-            elif len(self.vision_x)>0 and self.auto_alineY.get():
+            elif len(self.vision_x)>0 and self.auto_alineY.get() or self.auto_aline_autoY:
                 self.vision_numberY=self.vision_y[0]
 
-                if self.vision_numberY > 230:
-                    self.auto_calc=(((self.vision_numberY-230)/90)*.25)+.25
+                if self.vision_numberY > 50:
+                    self.auto_calc=(((self.vision_numberY-50)/210)*.15)+.25
                     self.drive1.set(-1*self.auto_calc)
                     self.drive1.set(self.auto_calc)
 
-                elif self.vision_numberY < 200:
-                    self.auto_calc=(((200-self.vision_numberY)/200)*.25)+.25
+                elif self.vision_numberY < 20:
+                    self.auto_calc=(((20-self.vision_numberY)/20)*.15)+.25
                     self.drive1.set(self.auto_calc)
                     self.drive2.set(-1*self.auto_calc)
                 else:
-                    self.ready_aline=False
+                    self.ready_aline=True
     def fire(self):
         """
         This function is the automated shooter. Fires piston out, spins motor to speed, fires back
