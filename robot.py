@@ -101,12 +101,15 @@ class MyRobot(wpilib.IterativeRobot):
         self.multiplier=1
         self.fire_counter=False
         self.ready=False
+        self.auto_aline_auto=False
         self.ready_aline=False
         
     def autonomousInit(self):
         
         self.auto_motor=0
         self.auto_state=0
+        self.ready_aline=False
+        self.auto_aline_auto=False
         self.auto_drive1=0
         self.auto_drive2=0
         self.state=4
@@ -126,47 +129,51 @@ class MyRobot(wpilib.IterativeRobot):
             self.any_crosser()
 
     def high_goal(self):
-        #Needs some vision!
+
         if self.auto_state == 0:
             self.timer.reset()
             self.navx.zeroYaw()
             self.auto_state=1
-            self.auto_drive1=0
-            self.auto_drive2=0
+            self.drive1.set(0)
+            self.drive2.set(0)
         #drive forward for x amount of time
         elif self.auto_state==1:
-            self.auto_drive1=.455
-            self.auto_drive2=.5
-            if self.timer.hasPeriodPassed(4.9):
+            self.drive1.set(-.455)
+            self.drive2.set(.5)
+            if self.timer.hasPeriodPassed(4):
                 self.auto_state=2
         #turn 20 degrees to face target
         elif self.auto_state==2:
             self.auto_drive1=0
             self.auto_drive2=0
-            #if self.turn(-170):
-            self.auto_state=3
+            if self.turn(-170):
+                self.auto_state=3
         #Drive forward again
         elif self.auto_state==3:
-            self.auto_drive1=-.52
-            self.auto_drive2=-.5
-            if self.timer.hasPeriodPassed(5.4):
+            self.drive1.set(.52)
+            self.drive2.set(-.5)
+            if self.timer.hasPeriodPassed(6):
                 self.auto_state=4
         #do a complete 180 to get ready to shoot
         elif self.auto_state==4:
-            self.auto_drive1=0
-            self.auto_drive2=0
-            self.auto_state=5
+            self.auto_aline_auto=True
+            if self.ready_aline:
+                self.auto_state=5
+        elif self.auto_state==5:
+            self.drive1.set(0)
+            self.drive2.set(0)
+            self.auto_state=6
             self.state=0
 
         self.fire()
         self.updater()
-
+        self.vision()
         #Set all the motors and pistons
         self.shooter.set(self.speedShooter)
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
-        self.drive1.set((-1*self.auto_drive1))
-        self.drive2.set((1*self.auto_drive2))
+        #self.drive1.set((-1*self.auto_drive1))
+        #self.drive2.set((1*self.auto_drive2))
 
     def low_bar_crosser(self):
         if self.auto_state == 0:
@@ -386,12 +393,13 @@ class MyRobot(wpilib.IterativeRobot):
         """
         #get data
         try:
-            self.vision_table.retrieveValue('centerX', self.vision_x)
-            self.vision_table.retrieveValue('centerY', self.vision_y)
+            #self.vision_table.retrieveValue('centerX', self.vision_x)
+            #self.vision_table.retrieveValue('centerY', self.vision_y)
+            self.vision_x=[160, 170]
         except KeyError:
             pass
         else:
-            if len(self.vision_x)>0 and self.auto_alineX.get():
+            if len(self.vision_x)>0 and self.auto_alineX.get() or self.auto_aline_auto:
                 if len(self.vision_x)==1:
                     self.vision_numberX=self.vision_x[0]
                 else:
@@ -415,7 +423,7 @@ class MyRobot(wpilib.IterativeRobot):
                 else:
                     self.ready_aline=True
 
-            elif len(self.vision_x)>0 and self.auto_alineX.get() and self.ready_aline:
+            elif len(self.vision_x)>0 and self.auto_alineY.get():
                 self.vision_numberY=self.vision_y[0]
 
                 if self.vision_numberY > 230:
