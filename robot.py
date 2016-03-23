@@ -17,7 +17,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter=wpilib.Talon(3)
         self.cam=wpilib.Talon(4)
         self.climber=wpilib.Talon(5)
-        self.set_climb=wpilib.Talon(6)
+        self.set_climb=wpilib.Relay(0)#Probably 0
         #navx
         self.navx = navx.AHRS.create_spi()
         #Robot Driving Arcade
@@ -385,14 +385,14 @@ class MyRobot(wpilib.IterativeRobot):
         self.servo.set(self.total_pan)
 
     def climbControl(self):
-        #Uses the right stick on the second controller to control the camera
+        #Uses the POV to control windows motor and the winch for climbing
 
         if self.controller.getPOV(0) in [90]:
-            self.set_climb.set(1)
+            self.set_climb.set(wpilib.Relay.Value.kForward)
         elif self.controller.getPOV(0) in [180]:
-            self.set_climb.set(-1)
+            self.set_climb.set(wpilib.Relay.Value.kReverse)
         else:
-            self.set_climb.set(0)
+            self.set_climb.set(wpilib.Relay.Value.kOff)
 
         if self.controller.getPOV(0) in [0]:
             self.climber.set(1)
