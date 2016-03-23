@@ -27,22 +27,19 @@ class MyRobot(wpilib.IterativeRobot):
         self.bottoms_up=wpilib.Solenoid(0,5)
         #Camera servo in the front to be able to navigate around
         self.servo=wpilib.Servo(0)
-        #Testing some ultrasonic sensors
-        self.ultrasonic=wpilib.Ultrasonic(1,0, units.inch)
-        self.ultrasonic.setAutomaticMode(True)
 
         #TWO CONTROLLERS
         self.controller = wpilib.Joystick(0)
         self.second_controller=wpilib.Joystick(1)
 
         #A button Second Controller
-        self.joystick_button=wpilib.buttons.JoystickButton(self.second_controller, 1)
+        self.intake_button=wpilib.buttons.JoystickButton(self.second_controller, 1)
         #A button on Main
         self.turn_button=wpilib.buttons.JoystickButton(self.controller, 1)
         #X button for cancelling a rogue navx
         self.cancel=wpilib.buttons.JoystickButton(self.controller, 2)
         #Y Button on Second Controller
-        self.second_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
+        self.shooter_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
         #Left Bumper for firing the back piston
         self.fire_buttoms_up=wpilib.buttons.JoystickButton(self.controller, 5)
 
@@ -53,8 +50,6 @@ class MyRobot(wpilib.IterativeRobot):
         #Right bumper
         self.right_bumper = wpilib.buttons.JoystickButton(self.second_controller,6)
         self.left_bumper = wpilib.buttons.JoystickButton(self.second_controller,5)
-        #Right bumper for boost on main controller
-        self.main_fast=wpilib.buttons.JoystickButton(self.controller, 6)
 
         #For controlling the servos, A and B button
         self.low_goal=wpilib.buttons.JoystickButton(self.second_controller,3)
@@ -75,7 +70,6 @@ class MyRobot(wpilib.IterativeRobot):
         self.speedShooter=0
         self.speedCam=0
         self.piston_update="I DON'T KNOW"
-        #Init variable for ultrasonic sensor
         #Timer stuff
         self.timer = wpilib.Timer()
         self.timer.start()
@@ -119,7 +113,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.final_choice=self.auto_chooser.getSelected()
 
     def autonomousPeriodic(self):
-        
+
         if self.final_choice=="1":
             self.high_goal()
         elif self.final_choice=="2":
@@ -176,8 +170,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
-        #self.drive1.set((-1*self.auto_drive1))
-        #self.drive2.set((1*self.auto_drive2))
+
 
     def low_bar_crosser(self):
         if self.auto_state == 0:
@@ -301,7 +294,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.updater()
 
         #Starts the fire stuff
-        if self.second_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
+        if self.shooter_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
             self.state = 0
             self.multiplier=1
         elif self.low_goal.get() and self.fire_counter==False:
@@ -309,7 +302,6 @@ class MyRobot(wpilib.IterativeRobot):
             self.multiplier=-.75
 
         self.fire()
-        self.push_me_up()
         self.cameraControl()
 
         #Retract solenoid anyways
@@ -351,7 +343,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.left=-1*(self.controller.getRawAxis(2))
         self.right=self.controller.getRawAxis(3)
         self.boost=(((self.left+self.right)*.4)-.1)+.7
-        #programming for lack of accuracy on the triggers
+        #just because my algorithm isn't perfect
         if self.boost>1:
             self.boost=1
         elif self.boost<0:
@@ -477,7 +469,7 @@ class MyRobot(wpilib.IterativeRobot):
             if self.timer.hasPeriodPassed(.75):
                 self.state=4
 
-        elif self.state==4 and self.joystick_button.get():
+        elif self.state==4 and self.intake_button.get():
             self.intake()
 
         elif self.state==4:
@@ -486,12 +478,6 @@ class MyRobot(wpilib.IterativeRobot):
             #self.shooter_piston=1 I could change this and see if that helps stop the immediate retract
             self.controller.setRumble(1, 0)
             self.second_controller.setRumble(1, 0)
-
-    def push_me_up(self):
-        if self.fire_buttoms_up.get():
-            self.bottoms_up.set(True)
-        else:
-            self.bottoms_up.set(False)
 
     def intake(self):
         #This might be a problem if the pistons fire before the motors are ready
@@ -525,10 +511,7 @@ class MyRobot(wpilib.IterativeRobot):
         else:
             self.piston_update="PISTON OUT"
         wpilib.SmartDashboard.putString('Piston', self.piston_update)
-        wpilib.SmartDashboard.putNumber('Roll', self.navx.getRoll())#Just seeing if this data is useful to us
-        wpilib.SmartDashboard.putNumber('Pitch', self.navx.getPitch())
         wpilib.SmartDashboard.putNumber('Yaw', self.navx.getYaw())
-        wpilib.SmartDashboard.putNumber('Velocity', self.navx.getVelocityY())
         wpilib.SmartDashboard.putNumber('Speed', self.shooter_high)
 
     def disabledPeriodic(self):
