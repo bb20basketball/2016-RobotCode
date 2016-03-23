@@ -16,6 +16,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.drive2=wpilib.Talon(2)
         self.shooter=wpilib.Talon(3)
         self.cam=wpilib.Talon(4)
+        self.climber=wpilib.Talon(5)
+        self.set_climb=wpilib.Talon(6)
         #navx
         self.navx = navx.AHRS.create_spi()
         #Robot Driving Arcade
@@ -303,6 +305,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         self.fire()
         self.cameraControl()
+        self.climbControl()
 
         #Retract solenoid anyways
         if self.right_bumper.get():
@@ -380,6 +383,24 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.ball_servo.get():
             self.total_pan=0
         self.servo.set(self.total_pan)
+
+    def climbControl(self):
+        #Uses the right stick on the second controller to control the camera
+
+        if self.controller.getPOV(0) in [90]:
+            self.set_climb.set(1)
+        elif self.controller.getPOV(0) in [180]:
+            self.set_climb.set(-1)
+        else:
+            self.set_climb.set(0)
+
+        if self.controller.getPOV(0) in [0]:
+            self.climber.set(1)
+        elif self.controller.getPOV(0) in [360]:
+            self.climber.set(-1)
+        else:
+            self.climber.set(0)
+
 
     def vision(self):
         """
