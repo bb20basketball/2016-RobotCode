@@ -43,8 +43,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Y Button on Second Controller
         self.shooter_button=wpilib.buttons.JoystickButton(self.second_controller, 4)
 
-        self.to_da_left=wpilib.buttons.JoystickButton(self.controller, 5)
-        self.to_da_right=wpilib.buttons.JoystickButton(self.controller, 6)
+        self.back_up=wpilib.buttons.JoystickButton(self.controller, 5)
 
         #You can press X to line up your shot if need be
         self.auto_alineX=wpilib.buttons.JoystickButton(self.controller, 3)
@@ -306,7 +305,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         self.fire()
         self.cameraControl()
-        self.climbControl()
+        self.backPistonControl()
 
         #Retract solenoid anyways
         if self.right_bumper.get():
@@ -385,22 +384,15 @@ class MyRobot(wpilib.IterativeRobot):
             self.total_pan=0
         self.servo.set(self.total_pan)
 
-    def climbControl(self):
-        #Uses the POV to control windows motor and the winch for climbing
+    def backPistonControl(self):
 
-        if self.to_da_right.get():
-            self.set_climb.set(wpilib.Relay.Value.kForward)
-        elif self.to_da_left.get():
-            self.set_climb.set(wpilib.Relay.Value.kReverse)
-        else:
-            self.set_climb.set(wpilib.Relay.Value.kOff)
+        if self.back_up.get():
 
-        if self.controller.getPOV(0) in [0, 45, 315]:
-            self.climber.set(1)
-        elif self.controller.getPOV(0) in [135, 180, 225]:
-            self.climber.set(-1)
+            self.bottoms_up.set(True)
+
         else:
-            self.climber.set(0)
+
+            self.bottoms_up.set(False)
 
 
     def vision(self):
