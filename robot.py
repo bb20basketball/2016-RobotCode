@@ -115,6 +115,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.arcade_drive.setSafetyEnabled(False)
         #Gets the choice
         self.final_choice=self.auto_chooser.getSelected()
+        #self.final_choice="1"
     def autonomousPeriodic(self):
 
         if self.final_choice=="1":
@@ -148,7 +149,7 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.auto_state==3:
             self.auto_drive1=.52
             self.auto_drive2=-.55
-            if self.timer.hasPeriodPassed(6):
+            if self.timer.hasPeriodPassed(4):
                 self.auto_state=4
         #do a complete 180 to get ready to shoot
         elif self.auto_state==4:
@@ -171,6 +172,9 @@ class MyRobot(wpilib.IterativeRobot):
             self.auto_drive2=0
             self.auto_state=7
             self.state=0
+        elif self.auto_state==7:
+            self.auto_drive1=0
+            self.auto_drive2=0
 
         self.fire()
         self.updater()
@@ -262,12 +266,16 @@ class MyRobot(wpilib.IterativeRobot):
         """
         current=self.navx.getYaw()
         if current > (degrees-10) and current < degrees:
-            self.drive2.set(0)
-            self.drive1.set(0)
+            self.auto_drive2=(0)
+            self.auto_drive1=(0)
             return True
         else:
-            self.drive2.set(.7)
-            self.drive1.set(-.5)
+            self.auto_drive2=(.7)
+            self.auto_drive1=(.5)
+            #Might need to change these ^^ if something wrong
+            if self.timer.hasPeriodPassed(3): #Safety Stuff
+
+                self.auto_state=7
 
 
     def change_speed(self):
