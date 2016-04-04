@@ -444,15 +444,15 @@ class MyRobot(wpilib.IterativeRobot):
                     self.auto_calc=(((self.vision_numberX-180)/140)*.15)+.25
                     self.turner=True
                     self.ready_alineX=False
-                    self.drive1.set(-1*self.auto_calc)
-                    self.drive2.set(self.auto_calc)
+                    self.auto_drive1=(1*self.auto_calc)
+                    self.auto_drive2=(self.auto_calc)
 
                 elif self.vision_numberX < 150:
                     self.turner=True
                     self.ready_alineX=False
                     self.auto_calc=(((150-self.vision_numberX)/150)*.15)+.25
                     self.auto_drive1=(self.auto_calc)
-                    self.auto_drive2=(-1*self.auto_calc)
+                    self.auto_drive2=(1*self.auto_calc)
                 else:
                     self.turner=False
                     self.ready_alineX=True
