@@ -18,7 +18,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter=wpilib.Talon(3)
         self.cam=wpilib.Talon(4)
         self.climber=wpilib.Talon(5)
-        self.set_climb=wpilib.Relay(0)#Probably 0
+        
         #navx
         self.navx = navx.AHRS.create_spi()
         #Robot Driving Arcade
@@ -451,10 +451,10 @@ class MyRobot(wpilib.IterativeRobot):
     def vision(self):
 
         try:
-            #self.vision_table.retrieveValue('centerX', self.vision_x)
-            #self.vision_table.retrieveValue('centerY', self.vision_y)
-            self.vision_x = [210]
-            self.vision_y = [150]
+            self.vision_table.retrieveValue('centerX', self.vision_x)
+            self.vision_table.retrieveValue('centerY', self.vision_y)
+            #self.vision_x = [210] Just for offline testing
+            #self.vision_y = [150]
         except KeyError:
             self.turner=False
         else:
