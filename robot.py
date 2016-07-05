@@ -524,7 +524,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.vision_state=2
         elif self.vision_state == 2:
 
-            if self.turnController.onTarget():
+            if self.turnController.onTarget() or self.cancel.get():
                 self.vision_state=3
                 self.rotateReady=False
 
