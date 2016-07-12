@@ -15,6 +15,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         self.drive1=wpilib.Talon(1)
         self.drive2=wpilib.Talon(2)
+        self.drive1.setInverted(True)
         self.shooter=wpilib.Talon(3)
         self.cam=wpilib.Talon(4)
         self.climber=wpilib.Talon(5)
@@ -22,7 +23,7 @@ class MyRobot(wpilib.IterativeRobot):
         #navx
         self.navx = navx.AHRS.create_spi()
         #Robot Driving Arcade
-        self.arcade_drive=wpilib.RobotDrive(self.drive1,self.drive2)
+        self.arcade_drive=wpilib.RobotDrive(self.drive2,self.drive1)#Major change
 
         #Solenoid me
         self.arm1=wpilib.DoubleSolenoid(0,1,2)
@@ -158,7 +159,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.auto_drive2=0
         #drive forward for x amount of time
         elif self.auto_state==1:
-            self.auto_drive1=-.455
+            self.auto_drive1=.455
             self.auto_drive2=.5
             if self.timer.hasPeriodPassed(4):
                 self.auto_state=2
@@ -168,7 +169,7 @@ class MyRobot(wpilib.IterativeRobot):
                 self.auto_state=3
         #Drive forward again
         elif self.auto_state==3:
-            self.auto_drive1=.52
+            self.auto_drive1=-.52
             self.auto_drive2=-.55
             if self.timer.hasPeriodPassed(4):
                 self.auto_state=4
@@ -227,8 +228,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
-        self.drive1.set((-1*self.auto_drive1))
-        self.drive2.set((1*self.auto_drive2))
+        self.drive1.set(self.auto_drive1)
+        self.drive2.set(self.auto_drive2)
 
     def any_crosser(self):
         if self.auto_state == 0:
@@ -255,8 +256,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
-        self.drive1.set((-1*self.auto_drive1))
-        self.drive2.set((1*self.auto_drive2))
+        self.drive1.set(self.auto_drive1)
+        self.drive2.set(self.auto_drive2)
 
     def reacher(self):
 
@@ -278,8 +279,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter.set(self.speedShooter)
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
-        self.drive1.set((-1*self.auto_drive1))
-        self.drive2.set((1*self.auto_drive2))
+        self.drive1.set(self.auto_drive1)
+        self.drive2.set(self.auto_drive2)
                 
     def turn(self, degrees):
         """
@@ -292,7 +293,7 @@ class MyRobot(wpilib.IterativeRobot):
             return True
         else:
             self.auto_drive2=(.7)
-            self.auto_drive1=(.5)
+            self.auto_drive1=(-.5)
             #Might need to change these ^^ if something wrong
             if self.timer.hasPeriodPassed(3): #Safety Stuff
 
@@ -301,8 +302,7 @@ class MyRobot(wpilib.IterativeRobot):
 
     def change_speed(self):
         """
-        Changes speed of shooter with the buttons by the Xbox logo
-        I use the counter to debounce the button a little so it doesn't hop up too much at a time
+        Needs to be changed for RPMs
         """
         if self.shooter_counter==0:
            if self.lower_speed.get():
@@ -336,10 +336,7 @@ class MyRobot(wpilib.IterativeRobot):
         #Starts the fire stuff
         if self.shooter_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
             self.state = 0
-            self.multiplier=1
-        elif self.low_goal.get() and self.fire_counter==False:
-            self.state=0
-            self.multiplier=-.75
+            self.multiplier=1 #Don't think I use this variable anyways
 
         self.fire()
         self.cameraControl()
@@ -353,6 +350,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
+
         if self.turn_button.get():
             self.turn_state=0
             yaw=self.navx.getYaw()
@@ -376,7 +374,7 @@ class MyRobot(wpilib.IterativeRobot):
             rotation = self.rotateToAngleRate
         else:
             self.turnController.disable()
-            rotation = (self.boost*(-1*self.controller.getX()))
+            rotation = (self.boost*(1*self.controller.getX()))#In theory it should be right
 
         try:
             self.arcade_drive.arcadeDrive((self.boost*self.controller.getY()), rotation)
@@ -396,7 +394,7 @@ class MyRobot(wpilib.IterativeRobot):
     def getControllerStates(self):
         
         #Gets the values of triggers for the Cam
-        self.left=-1*(self.controller.getRawAxis(2))
+        self.left=-1*(self.controller.getRawAxis(2)) #May need to change anyways
         self.right=self.controller.getRawAxis(3)
         self.boost=(((self.left+self.right)*.4)-.1)+.7
         #just because my algorithm isn't perfect
@@ -438,13 +436,10 @@ class MyRobot(wpilib.IterativeRobot):
         self.servo.set(self.total_pan)
 
     def backPistonControl(self):
-
+        #Emergency back piston if we are stuck
         if self.back_up.get():
-
             self.bottoms_up.set(True)
-
         else:
-
             self.bottoms_up.set(False)
 
 
@@ -453,7 +448,7 @@ class MyRobot(wpilib.IterativeRobot):
         try:
             self.vision_table.retrieveValue('centerX', self.vision_x)
             self.vision_table.retrieveValue('centerY', self.vision_y)
-            #self.vision_x = [210] Just for offline testing
+            #self.vision_x = [210] #Just for offline testing
             #self.vision_y = [150]
         except KeyError:
             self.turner=False
@@ -468,14 +463,14 @@ class MyRobot(wpilib.IterativeRobot):
                     self.turner=True
                     self.ready_aline=False
                     self.auto_calc=(((self.vision_numberY-50)/210)*.15)+.25
-                    self.auto_drive1=(-1*self.auto_calc)
+                    self.auto_drive1=(self.auto_calc)
                     self.auto_drive2=(self.auto_calc)
 
                 elif self.vision_numberY < 20:
                     self.turner=True
                     self.ready_aline=False
                     self.auto_calc=(((20-self.vision_numberY)/20)*.15)+.25
-                    self.auto_drive1=(self.auto_calc)
+                    self.auto_drive1=(-1*self.auto_calc)#May be backwards
                     self.auto_drive2=(-1*self.auto_calc)
                 else:
                     self.turner=False
@@ -484,11 +479,11 @@ class MyRobot(wpilib.IterativeRobot):
                 self.turner=False
                 self.ready_aline=False
                 self.ready_alineX=False
-        print (self.vision_state)
 
         self.visionTurn()
 
     def find_bestX(self):
+        #My attempt to find the best target
         if len(self.vision_x)==1:
             self.vision_numberX=self.vision_x[0]
         else:
@@ -507,13 +502,22 @@ class MyRobot(wpilib.IterativeRobot):
 
         yaw=self.navx.getYaw()
         if yaw > 0:
-            self.desiredAngle=self.navx.getYaw()+(angle*(227/180))
+            self.desiredAngle=self.navx.getYaw()+(angle*(227/180)) #Times 227/180 because the gyro is offset
             if self.desiredAngle>179:
                 self.desiredAngle -= 360
         else:
             self.desiredAngle=self.navx.getYaw()+(angle*(133/180))
             if self.desiredAngle<-179:
                 self.desiredAngle += 360
+
+        #Just a really bad fix for the robot turning around the wrong way.
+        #Really should flip the motors but that would require a lot of testing
+        #because of the drive motors are referenced everywhere!
+        if self.desiredAngle>0:
+            self.desiredAngle-=180
+        else:
+            self.desiredAngle+=180
+
         return self.desiredAngle
 
     def visionTurn(self):
@@ -640,10 +644,6 @@ class MyRobot(wpilib.IterativeRobot):
         self.speedShooter=.17
         self.shooter_piston=2
 
-    def amIStuck(self):
-        if self.navx.getVelocityY()<.2 and self.navx.getVelocityY() >-.2:
-            return True
-
     def teleopTurn(self):
         """
         Takes the current position and tries to do a 180 for the shooter
@@ -657,7 +657,7 @@ class MyRobot(wpilib.IterativeRobot):
                 if self.cancel.get(): #Press B to cancel the turning
                     self.turn_state=2
                 self.drive2.set(.7)
-                self.drive1.set(.5)
+                self.drive1.set(-.5)
 
 
     def updater(self):
