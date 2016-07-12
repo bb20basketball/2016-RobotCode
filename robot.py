@@ -113,7 +113,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter_high=.47
         self.auto_aline_autoY=False
         self.updater()
-        self.multiplier=1
+        self.multiplier=.0000005
         self.fire_counter=False
         self.ready=False
         self.auto_aline_auto=False
@@ -303,21 +303,24 @@ class MyRobot(wpilib.IterativeRobot):
     def change_speed(self):
         """
         Needs to be changed for RPMs
+        000,000,5
         """
         if self.shooter_counter==0:
            if self.lower_speed.get():
-               self.shooter_high-=.005
+               self.multiplier-=.00000001
            elif self.higher_speed.get():
-               self.shooter_high+=.005
+               self.shooter_high+=.00000001
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==1:
             self.shooter_counter=2
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==2:
             self.shooter_counter=0
 
-        if self.shooter_high>1:
-            self.shooter_high=1
-        elif self.shooter_high<.1:
-            self.shooter_high=.1
+        if self.multiplier>.000001:
+            self.multiplier=.000001
+            print ("Warning, hit high speed")
+        elif self.multiplier<.00000001:
+            self.multiplier=.00000001
+            print ("Warning, hit low speed")
 
     def teleopInit(self):
         #starting out the state at neutral motors
@@ -335,8 +338,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         #Starts the fire stuff
         if self.shooter_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
-            self.state = 0
-            self.multiplier=1 #Don't think I use this variable anyways
+            self.state = 0 #Starts the fire sequence
 
         self.fire()
         self.cameraControl()
@@ -362,6 +364,7 @@ class MyRobot(wpilib.IterativeRobot):
                 self.desired=self.navx.getYaw()+133
                 if self.desired>179:
                     self.desired=self.desired-360
+
         self.vision()
         #Set Everything that needs to be set
         self.arm1.set(self.shooter_piston)
@@ -509,14 +512,6 @@ class MyRobot(wpilib.IterativeRobot):
             self.desiredAngle=self.navx.getYaw()+(angle*(133/180))
             if self.desiredAngle<-179:
                 self.desiredAngle += 360
-
-        #Just a really bad fix for the robot turning around the wrong way.
-        #Really should flip the motors but that would require a lot of testing
-        #because of the drive motors are referenced everywhere!
-        if self.desiredAngle>0:
-            self.desiredAngle-=180
-        else:
-            self.desiredAngle+=180
 
         return self.desiredAngle
 
