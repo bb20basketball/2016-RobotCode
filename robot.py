@@ -83,7 +83,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.vision_y=networktables.NumberArray()
         self.vision_numberX=0
         self.vision_numberY=0
-
+        self.automatedShooter = 0
         #PIDs!!
         kP = 0.03
         kI = 0.00
@@ -98,7 +98,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.turnController = turnController
 
         #encoder
-        self.encoder = wpilib.Encoder(0,1)
+        self.encoder = wpilib.Encoder(9,8)
         self.encoder.setDistancePerPulse(4)
         #Gets sends the options to the SmartDashboard
         self.auto_chooser=wpilib.SendableChooser()
@@ -328,6 +328,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.total_pan=0
         self.turn_state=2
         self.desired=0
+        self.auto_aline_auto=False
+        self.auto_aline_autoY=False
         self.arcade_drive.setSafetyEnabled(True)
 
     def teleopPeriodic(self):
@@ -336,10 +338,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.change_speed()
         self.updater()
 
-        #Starts the fire stuff
-        if self.shooter_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
-            self.state = 0 #Starts the fire sequence
 
+        self.chooseAutoAline()
         self.fire()
         self.cameraControl()
         self.backPistonControl()
@@ -446,6 +446,18 @@ class MyRobot(wpilib.IterativeRobot):
             self.bottoms_up.set(False)
 
 
+    def chooseAutoAline(self):
+
+        if self.controller.getPOV(0) in [45, 90, 135] and self.fire_counter==False: #X and Y and shoot
+            self.state = 0
+            self.automatedShooter=2
+        elif self.controller.getPOV(0) in [230, 270, 305] and self.fire_counter==False: #X and shoot
+            self.state = 0
+            self.automatedShooter=1
+        #Starts the fire stuff
+        elif self.shooter_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
+            self.state = 0 #Starts the fire sequence
+            self.automatedShooter=0
     def vision(self):
 
         try:
@@ -466,17 +478,18 @@ class MyRobot(wpilib.IterativeRobot):
                     self.turner=True
                     self.ready_aline=False
                     self.auto_calc=(((self.vision_numberY-50)/210)*.15)+.25
-                    self.auto_drive1=(self.auto_calc)
-                    self.auto_drive2=(self.auto_calc)
+                    self.auto_drive1=(-1*self.auto_calc)
+                    self.auto_drive2=(-1*self.auto_calc)
 
                 elif self.vision_numberY < 20:
                     self.turner=True
                     self.ready_aline=False
                     self.auto_calc=(((20-self.vision_numberY)/20)*.15)+.25
-                    self.auto_drive1=(-1*self.auto_calc)#May be backwards
-                    self.auto_drive2=(-1*self.auto_calc)
+                    self.auto_drive1=(1*self.auto_calc)#May be backwards
+                    self.auto_drive2=(1*self.auto_calc)
                 else:
                     self.turner=False
+                    self.auto_aline_autoY=False
                     self.ready_aline=True
             else:
                 self.turner=False
@@ -526,53 +539,9 @@ class MyRobot(wpilib.IterativeRobot):
             if self.turnController.onTarget() or self.cancel.get():
                 self.vision_state=3
                 self.rotateReady=False
+                self.auto_aline_auto=False
 
 
-    #takes and drives ^^
-    def test(self):
-        """
-                if self.vision_numberX > 180:
-                    self.auto_calc=(((self.vision_numberX-180)/140)*.15)+.25
-                    self.turner=True
-                    self.ready_alineX=False
-                    self.auto_drive1=(1*self.auto_calc)
-                    self.auto_drive2=(self.auto_calc)
-
-                elif self.vision_numberX < 150:
-                    self.turner=True
-                    self.ready_alineX=False
-                    self.auto_calc=(((150-self.vision_numberX)/150)*.15)+.25
-                    self.auto_drive1=(self.auto_calc)
-                    self.auto_drive2=(1*self.auto_calc)
-                else:
-                    self.turner=False
-                    self.ready_alineX=True
-
-            elif len(self.vision_x)>0 and self.auto_alineY.get() or self.auto_aline_autoY:
-                self.vision_numberY=self.vision_y[0]
-
-                if self.vision_numberY > 50:
-                    self.turner=True
-                    self.ready_aline=False
-                    self.auto_calc=(((self.vision_numberY-50)/210)*.15)+.25
-                    self.auto_drive1=(-1*self.auto_calc)
-                    self.auto_drive2=(self.auto_calc)
-
-                elif self.vision_numberY < 20:
-                    self.turner=True
-                    self.ready_aline=False
-                    self.auto_calc=(((20-self.vision_numberY)/20)*.15)+.25
-                    self.auto_drive1=(self.auto_calc)
-                    self.auto_drive2=(-1*self.auto_calc)
-                else:
-                    self.turner=False
-                    self.ready_aline=True
-            else:
-                self.turner=False
-                self.ready_aline=False
-                self.ready_alineX=False
-                """
-        pass
     def fire(self):
         """
         This function is the automated shooter. Fires piston out, spins motor to speed, fires back
@@ -591,6 +560,8 @@ class MyRobot(wpilib.IterativeRobot):
             self.second_controller.setRumble(1, .9)
             self.shooter_piston=2
             self.speedShooter=0
+            if self.automatedShooter==2:
+                self.auto_aline_autoY=True
 
             if self.timer.hasPeriodPassed(.75):
                 self.speedShooter=.2
@@ -603,6 +574,9 @@ class MyRobot(wpilib.IterativeRobot):
             self.normalDiff = (self.difference)*.0000005 #Finds difference and averages then multiplies gain
             self.totalSpeed+=self.normalDiff #Adds it to the PWM speed
 
+            if not self.auto_aline_autoY:
+                self.auto_aline_auto=True
+
             if self.totalSpeed > 1: self.totalSpeed=1
             elif self.totalSpeed < 0: self.totalSpeed=0
 
@@ -613,10 +587,11 @@ class MyRobot(wpilib.IterativeRobot):
 
             print ("Encoder: "+str(self.encoder.getRate())+" ... Speed: "+str(self.speedShooter))
             if self.encoder.getRate()<3300 and self.encoder.getRate()>3100: #Probably start with a bigger range at first
-                self.speedShooter=self.totalSpeed
-                self.shooter_piston=1
-                self.state=3
-                self.ready=True
+                if not self.auto_aline_auto:
+                    self.speedShooter=self.totalSpeed
+                    self.shooter_piston=1
+                    self.state=3
+                    self.ready=True
 
 
         elif self.state == 3:
