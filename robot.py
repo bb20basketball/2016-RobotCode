@@ -315,8 +315,8 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.lower_speed.get() or self.higher_speed.get() and self.shooter_counter==2:
             self.shooter_counter=0
 
-        if self.multiplier>.000001:
-            self.multiplier=.000001
+        if self.multiplier>.000005:
+            self.multiplier=.000005
             print ("Warning, hit high speed")
         elif self.multiplier<.00000001:
             self.multiplier=.00000001
@@ -571,7 +571,7 @@ class MyRobot(wpilib.IterativeRobot):
         elif self.state==2:
             self.shooter_piston=2
             self.difference = 3200 - self.encoder.getRate() #3200 is the target RPM
-            self.normalDiff = (self.difference)*.0000005 #Finds difference and averages then multiplies gain
+            self.normalDiff = (self.difference)*.0000009 #Finds difference and averages then multiplies gain
             self.totalSpeed+=self.normalDiff #Adds it to the PWM speed
 
             if not self.auto_aline_autoY:
