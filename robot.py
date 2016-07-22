@@ -113,7 +113,7 @@ class MyRobot(wpilib.IterativeRobot):
         self.shooter_high=.47
         self.auto_aline_autoY=False
         self.updater()
-        self.multiplier=.0000005
+        self.multiplier=.0000009
         self.fire_counter=False
         self.ready=False
         self.auto_aline_auto=False
