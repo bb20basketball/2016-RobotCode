@@ -77,6 +77,8 @@ class MyRobot(wpilib.IterativeRobot):
         #Timer stuff
         self.timer = wpilib.Timer()
         self.timer.start()
+        self.auto_timer = wpilib.Timer()
+        self.auto_timer.start()
 
         self.vision_table = networktables.NetworkTable.getTable('/GRIP/myContoursReport')
         self.vision_x= networktables.NumberArray()
@@ -92,7 +94,7 @@ class MyRobot(wpilib.IterativeRobot):
         turnController = wpilib.PIDController(kP, kI, kD, kF, self.navx, output=self)
         turnController.setInputRange(-180.0,  180.0)
         turnController.setOutputRange(-.5, .5)
-        turnController.setAbsoluteTolerance(1.0)
+        turnController.setAbsoluteTolerance(2.0)
         turnController.setContinuous(True)
 
         self.turnController = turnController
@@ -124,6 +126,10 @@ class MyRobot(wpilib.IterativeRobot):
         self.rotateReady=False
         self.rotateToAngleRate=0
         self.totalSpeed=0
+        self.auto_state_fire = 4
+        self.move = 0
+        self.rotationX = 0
+        self.focal_length = 160 / math.tan(math.radians(30.0))
         
     def autonomousInit(self):
         
@@ -136,8 +142,8 @@ class MyRobot(wpilib.IterativeRobot):
         self.state=5
         self.arcade_drive.setSafetyEnabled(False)
         #Gets the choice
-        self.final_choice=self.auto_chooser.getSelected()
-        #self.final_choice="1"
+        #self.final_choice=self.auto_chooser.getSelected()
+        self.final_choice="5"
     def autonomousPeriodic(self):
 
         if self.final_choice=="1":
@@ -148,6 +154,8 @@ class MyRobot(wpilib.IterativeRobot):
             self.reacher()
         elif self.final_choice=="4":
             self.any_crosser()
+        elif self.final_choice == "5":
+            self.low_goal_auto()
 
     def high_goal(self):
 
@@ -159,55 +167,105 @@ class MyRobot(wpilib.IterativeRobot):
             self.auto_drive2=0
         #drive forward for x amount of time
         elif self.auto_state==1:
-            self.auto_drive1=.455
-            self.auto_drive2=.5
+            self.move = .71
+            self.rotationX = .23
             if self.timer.hasPeriodPassed(4):
                 self.auto_state=2
         #turn 20 degrees to face target
         elif self.auto_state==2:
-            if self.turn(-170):
-                self.auto_state=3
+            self.move = 0
+            self.rotationX = 0
+            self.desiredAngle = -170
+            self.vision_state= 1
+            self.turnController.enable()
+            self.auto_state=3
         #Drive forward again
-        elif self.auto_state==3:
-            self.auto_drive1=-.52
-            self.auto_drive2=-.55
-            if self.timer.hasPeriodPassed(4):
-                self.auto_state=4
-        #do a complete 180 to get ready to shoot
+        elif self.auto_state == 3:
+            if self.vision_state == 3:
+                self.turnController.disable()
+                self.rotationX = 0
+                self.auto_state = 4
+            else:
+                self.rotationX = self.rotateToAngleRate
         elif self.auto_state==4:
-            self.auto_drive1=0
-            self.auto_drive2=0
-            self.auto_aline_autoY=True
-            if self.ready_aline:
-                self.auto_state=5
-                self.ready_alineX=False
-
-        elif self.auto_state==5:
-            self.auto_aline_auto=True
-            self.auto_drive1=0
-            self.auto_drive2=0
-            if self.ready_alineX:
+            self.move = -.71
+            self.rotationX = -.23
+            if self.timer.hasPeriodPassed(4):
                 self.auto_state=6
+        #do a complete 180 to get ready to shoot
 
         elif self.auto_state==6:
-            self.auto_drive1=0
-            self.auto_drive2=0
+            self.move = 0
+            self.rotationX = 0
             self.auto_state=7
             self.state=0
         elif self.auto_state==7:
-            self.auto_drive1=0
-            self.auto_drive2=0
+            self.move = 0
+            self.rotationX = 0
 
         self.fire()
         self.updater()
-        self.vision()
+        self.visionTurn()
         #Set all the motors and pistons
         self.shooter.set(self.speedShooter)
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
-        self.drive1.set(self.auto_drive1)
-        self.drive2.set(self.auto_drive2)
+        self.arcade_drive.arcadeDrive(self.rotationX, self.move)
 
+
+    def low_goal_auto(self):
+
+        if self.auto_state == 0:
+            self.timer.reset()
+            self.navx.zeroYaw()
+            self.auto_state=1
+            self.move = 0
+            self.rotationX=0
+        #drive forward for x amount of time
+        elif self.auto_state==1:
+            self.move = .71
+            self.rotationX = .23
+            if self.timer.hasPeriodPassed(4):
+                self.auto_state=2
+        #turn 20 degrees to face target
+        elif self.auto_state==2:
+            self.move = 0
+            self.rotationX = 0
+            self.desiredAngle = 10
+            self.vision_state= 1
+            self.turnController.enable()
+            self.auto_state=3
+        #Drive forward again
+        elif self.auto_state == 3:
+            if self.vision_state == 3:
+                self.turnController.disable()
+                self.rotationX = 0
+                self.auto_state = 4
+            else:
+                self.rotationX = self.rotateToAngleRate
+        elif self.auto_state==4:
+            self.move = .71
+            self.rotationX = .23
+            if self.timer.hasPeriodPassed(4):
+                self.auto_state=6
+
+        elif self.auto_state==6:
+            self.move = 0
+            self.rotationX=0
+            self.auto_state=7
+            self.auto_state_fire=0
+        elif self.auto_state==7:
+            self.rotationX = 0
+            self.move = 0
+
+        self.low_fire()
+        self.updater()
+        self.visionTurn()
+        #Set all the motors and pistons
+        self.shooter.set(self.speedShooter)
+        self.arm1.set(self.shooter_piston)
+        self.arm2.set(self.shooter_piston)
+        self.arcade_drive.arcadeDrive(self.rotationX, self.move)
 
     def low_bar_crosser(self):
         if self.auto_state == 0:
@@ -287,17 +345,28 @@ class MyRobot(wpilib.IterativeRobot):
         For autonomous, to turn to set angle, requires reset on the navx to zero it out
         """
         current=self.navx.getYaw()
-        if current > (degrees-10) and current < degrees:
+        if current > (degrees-5) and current < degrees:
             self.auto_drive2=(0)
             self.auto_drive1=(0)
             return True
         else:
-            self.auto_drive2=(.7)
-            self.auto_drive1=(-.5)
+            self.auto_drive2=(.5)
+            self.auto_drive1=(-.4)
             #Might need to change these ^^ if something wrong
             if self.timer.hasPeriodPassed(3): #Safety Stuff
 
                 self.auto_state=7
+    def visionTurn(self):
+
+        if self.vision_state == 1:
+            self.turnController.setSetpoint(self.desiredAngle)
+            self.rotateReady = True
+            self.vision_state=2
+        elif self.vision_state == 2:
+
+            if self.turnController.onTarget():
+                self.vision_state=3
+                self.rotateReady=False
 
 
     def change_speed(self):
@@ -338,8 +407,10 @@ class MyRobot(wpilib.IterativeRobot):
         self.change_speed()
         self.updater()
 
+        if self.shooter_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
+            self.state = 0 #Starts the fire sequence
 
-        self.chooseAutoAline()
+
         self.fire()
         self.cameraControl()
         self.backPistonControl()
@@ -353,6 +424,8 @@ class MyRobot(wpilib.IterativeRobot):
         #Gets rid of some of the .getRawAxis stuff
         self.getControllerStates()
 
+
+
         if self.turn_button.get():
             self.turn_state=0
             yaw=self.navx.getYaw()
@@ -365,19 +438,14 @@ class MyRobot(wpilib.IterativeRobot):
                 if self.desired>179:
                     self.desired=self.desired-360
 
-        self.vision()
+
         #Set Everything that needs to be set
         self.arm1.set(self.shooter_piston)
         self.arm2.set(self.shooter_piston)
         self.shooter.set(self.speedShooter)
         self.cam.set(self.speedCam)
         #Lets drive!
-        if self.rotateReady:
-            self.turnController.enable()
-            rotation = self.rotateToAngleRate
-        else:
-            self.turnController.disable()
-            rotation = (self.boost*(1*self.controller.getX()))#In theory it should be right
+        rotation = (self.boost*(1*self.controller.getX()))#In theory it should be right
 
         try:
             self.arcade_drive.arcadeDrive(rotation, (self.boost*self.controller.getY()))
@@ -386,6 +454,7 @@ class MyRobot(wpilib.IterativeRobot):
                 raise
         #I call it last because it needs to override the arcadedrive
         self.teleopTurn()
+        self.vision()
         if self.turner:
             self.drive1.set(self.auto_drive1)
             self.drive2.set(self.auto_drive2)
@@ -446,104 +515,67 @@ class MyRobot(wpilib.IterativeRobot):
             self.bottoms_up.set(False)
 
 
-    def chooseAutoAline(self):
 
-        if self.controller.getPOV(0) in [45, 90, 135] and self.fire_counter==False: #X and Y and shoot
-            self.state = 0
-            self.automatedShooter=2
-        elif self.controller.getPOV(0) in [230, 270, 305] and self.fire_counter==False: #X and shoot
-            self.state = 0
-            self.automatedShooter=1
-        #Starts the fire stuff
-        elif self.shooter_button.get() and self.fire_counter==False: #FIRE THE PISTON AND MOTORS#
-            self.state = 0 #Starts the fire sequence
-            self.automatedShooter=0
     def vision(self):
-
+        """
+        IT WORKS....mostly
+        Press X to align the side to side
+        Press Y to get the distance needed
+        """
+        #get data
         try:
             self.vision_table.retrieveValue('centerX', self.vision_x)
-            
             self.vision_table.retrieveValue('centerY', self.vision_y)
-            print (self.vision_x)
-            #self.vision_x = [210] #Just for offline testing
-            #self.vision_y = [150]
+            #self.vision_x = [210]
         except KeyError:
-            self.turner=False
+            pass
         else:
-            if len(self.vision_x)>0 and self.auto_alineX.get() and self.vision_state == 3 or self.auto_aline_auto:
-                self.auto_aline_auto=False
-                self.degrees=self.gyroMagic(self.find_bestX())
-                self.vision_state = 1
-            elif len(self.vision_x)>0 and self.auto_alineY.get() or self.auto_aline_autoY:
+            if len(self.vision_x)>0 and self.auto_alineX.get():
+                if len(self.vision_x)==1:
+                    self.vision_numberX=self.vision_x[0]
+                else:
+                    good=self.vision_x[0]
+                    normal=abs(self.vision_x[0]-160)
+                    for i in self.vision_x[1:]:
+                        total=abs(i-160)
+                        if total <= normal:
+                            normal=total
+                            good=i
+                    self.vision_numberX=good
+                if self.vision_numberX > 190:
+                    self.turner = True
+                    self.auto_calc=(((self.vision_numberX-190)/130)*.15)+.25
+                    self.auto_drive1=(-1*self.auto_calc)
+                    self.auto_drive2=(self.auto_calc)
+
+                elif self.vision_numberX < 160:
+                    self.turner = True
+                    self.auto_calc=(((160-self.vision_numberX)/160)*.15)+.25
+                    self.auto_drive1=(self.auto_calc)
+                    self.auto_drive2=(-1*self.auto_calc)
+                else:
+                    self.turner = False
+                    self.ready_aline=True
+
+            elif len(self.vision_x)>0 and self.auto_alineY.get():
                 self.vision_numberY=self.vision_y[0]
-                
+
                 if self.vision_numberY > 72:
                     self.turner=True
-                    self.ready_aline=False
-                    self.auto_calc=(((self.vision_numberY-72)/210)*.15)+.2
+                    self.auto_calc=(((self.vision_numberY-72)/168)*.15)+.25
                     self.auto_drive1=(-1*self.auto_calc)
                     self.auto_drive2=(-1*self.auto_calc)
 
                 elif self.vision_numberY < 54:
                     self.turner=True
-                    self.ready_aline=False
-                    self.auto_calc=(((54-self.vision_numberY)/54)*.15)+.15
-                    self.auto_drive1=(1*self.auto_calc)#May be backwards
+                    self.auto_calc=(((54-self.vision_numberY)/54)*.15)+.25
+                    self.auto_drive1=(1*self.auto_calc)
                     self.auto_drive2=(1*self.auto_calc)
                 else:
-                    self.turner=False
-                    self.auto_aline_autoY=False
                     self.ready_aline=True
+                    self.turner = False
             else:
-                self.turner=False
-                self.ready_aline=False
-                self.ready_alineX=False
-
-        self.visionTurn()
-
-    def find_bestX(self):
-        #My attempt to find the best target
-        if len(self.vision_x)==1:
-            self.vision_numberX=self.vision_x[0]
-        else:
-            good=self.vision_x[0]
-            normal=abs(self.vision_x[0]-147)
-            for i in self.vision_x[1:]:
-                total=abs(i-147)
-                if total <= normal:
-                    normal=total
-                    good=i
-            self.vision_numberX=good
-        return self.vision_numberX
-
-    def gyroMagic(self, x):
-        angle = ((x-170)*(60/320)) #Change the second part of this equation if it is not right
-
-        yaw=self.navx.getYaw()
-        print (yaw)
-        if yaw > 0:
-            self.desiredAngle=self.navx.getYaw()+(angle*(180/180)) #Times 227/180 because the gyro is offset
-            if self.desiredAngle>179:
-                self.desiredAngle -= 360
-        else:
-            self.desiredAngle=self.navx.getYaw()+(angle*(180/180))
-            if self.desiredAngle<-179:
-                self.desiredAngle += 360
-
-        return self.desiredAngle
-
-    def visionTurn(self):
-
-        if self.vision_state == 1:
-            self.turnController.setSetpoint(self.desiredAngle)
-            self.rotateReady = True
-            self.vision_state=2
-        elif self.vision_state == 2:
-
-            if self.turnController.onTarget() or self.cancel.get():
-                self.vision_state=3
-                self.rotateReady=False
-                self.auto_aline_autoNow=False
+                self.turner = False
 
 
     def fire(self):
@@ -554,7 +586,7 @@ class MyRobot(wpilib.IterativeRobot):
             self.timer.reset()
             self.state=1
             self.ready=False
-            self.last = 4800
+            self.last = 4600
             self.speedShooter=0
             self.b = 0
             self.counterAuto = 0
@@ -565,8 +597,6 @@ class MyRobot(wpilib.IterativeRobot):
             self.second_controller.setRumble(1, .9)
             self.shooter_piston=2
             self.speedShooter=0
-            if self.automatedShooter==2:
-                self.auto_aline_autoY=True
 
             if self.timer.hasPeriodPassed(.75):
                 self.speedShooter=.2
@@ -575,7 +605,7 @@ class MyRobot(wpilib.IterativeRobot):
 
         elif self.state==2:
             self.shooter_piston=2
-            self.difference = 4800 - self.encoder.getRate() #3200 is the target RPM
+            self.difference = 4600 - self.encoder.getRate() #3200 is the target RPM
             self.normalDiff = (self.difference)*.0000009 #Finds difference and averages then multiplies gain
             self.totalSpeed+=self.normalDiff #Adds it to the PWM speed
 
@@ -594,20 +624,10 @@ class MyRobot(wpilib.IterativeRobot):
 
             print ("Encoder: "+str(self.encoder.getRate())+" ... Speed: "+str(self.speedShooter))
         
-            if self.encoder.getRate()<4800 and self.encoder.getRate()>4500:
-                self.state=3
-
-        elif self.state==3:
-            
-            #Probably start with a bigger range at first
-            if not self.auto_aline_autoNow:
-                self.speedShooter=self.totalSpeed
-                self.shooter_piston=1
-                self.state=4
-                self.ready=True
-            else:
-                print ("nope")
-                self.speedShooter=self.totalSpeed
+            if self.encoder.getRate()<4600 and self.encoder.getRate()>4300:
+                if not self.hold_button:
+                    self.shooter_piston=1
+                    self.state=4
 
 
         elif self.state == 4:
@@ -645,6 +665,41 @@ class MyRobot(wpilib.IterativeRobot):
                 self.drive2.set(.7)
                 self.drive1.set(-.5)
 
+    def low_fire(self):
+        """
+        This function is the automated shooter. Fires piston out, spins motor to speed, fires back
+        """
+        if self.auto_state_fire == 0:
+            self.auto_timer.reset()
+            self.auto_state_fire=1
+            self.speedShooter=0
+
+        elif self.auto_state_fire == 1:
+            self.shooter_piston=2
+            self.speedShooter=0
+
+            if self.auto_timer.hasPeriodPassed(.75):
+                self.speedShooter=-.4
+                self.auto_state_fire=2
+
+        elif self.auto_state_fire==2:
+            self.shooter_piston=2
+            self.speedShooter=-.4
+            if self.auto_timer.hasPeriodPassed(2.5):
+                self.speedShooter=self.shooter_high*self.multiplier
+                self.shooter_piston=1
+                self.auto_state_fire=3
+                self.ready=True
+
+        elif self.auto_state_fire == 3:
+            self.speedShooter=-.4
+            if self.auto_timer.hasPeriodPassed(.75):
+                self.auto_state_fire=4
+
+        elif self.auto_state_fire==4:
+
+            self.speedShooter=0
+    
 
     def updater(self):
         ##Put all smartdashboard things here
