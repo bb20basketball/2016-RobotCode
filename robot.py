@@ -625,7 +625,7 @@ class MyRobot(wpilib.IterativeRobot):
             print ("Encoder: "+str(self.encoder.getRate())+" ... Speed: "+str(self.speedShooter))
         
             if self.encoder.getRate()<4600 and self.encoder.getRate()>4300:
-                if not self.hold_button:
+                if not self.hold_button.get():
                     self.shooter_piston=1
                     self.state=4
 
